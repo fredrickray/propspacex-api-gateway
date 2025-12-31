@@ -15,6 +15,12 @@ service UserService {
   rpc Signup (SignupRequest) returns (SignupResponse);
   rpc VerifyOTP (VerifyOTPRequest) returns (VerifyOTPResponse);
   rpc ResendOTP (ResendOTPRequest) returns (ResendOTPResponse);
+
+  // Security & Device Management (called by API Gateway)
+  rpc ValidateToken (ValidateTokenRequest) returns (ValidateTokenResponse);
+  rpc RegisterDevice (RegisterDeviceRequest) returns (RegisterDeviceResponse);
+  rpc LogActivity (LogActivityRequest) returns (LogActivityResponse);
+  rpc CheckDeviceTrust (CheckDeviceTrustRequest) returns (CheckDeviceTrustResponse);
 }
 
 message CreateUserRequest {
@@ -137,4 +143,59 @@ message ResendOTPResponse {
   bool success = 1;
   string message = 2;
   string error = 3;
+}
+
+
+// Security & Device Management messages
+message ValidateTokenRequest {
+  string accessToken = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  string userId = 2;
+  string email = 3;
+  string appRole = 4;
+  bool isVerified = 5;
+  bool isAccountActive = 6;
+  string error = 7;
+}
+
+// Device Registration
+message RegisterDeviceRequest {
+  string userId = 1;
+  string ipAddress = 2;
+  string userAgent = 3;
+  bool isTrusted = 4;
+}
+
+message RegisterDeviceResponse {
+  bool success = 1;
+  string deviceId = 2;
+  bool isNewDevice = 3;
+  bool isSuspicious = 4;
+}
+
+// Activity Logging
+message LogActivityRequest {
+  string event = 1;
+  string userId = 2;
+  string ipAddress = 3;
+  string userAgent = 4;
+  string deviceId = 5;
+  string metadata = 6; // JSON string
+}
+
+message LogActivityResponse {
+  bool success = 1;
+}
+
+// Device Trust Check
+message CheckDeviceTrustRequest {
+  string userId = 1;
+  string deviceId = 2;
+}
+
+message CheckDeviceTrustResponse {
+  bool isTrusted = 1;
 }

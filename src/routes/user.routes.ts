@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import jwt from "jsonwebtoken";
 import { userService } from "../grpc-clients";
-import { authenticate, authorize } from "@middlewares/auth.middleware";
+import { authenticate, authorizeRoles } from "@middlewares/auth.middleware";
 import config from "@config/service.config";
 import logger from "@utils/logger";
 
@@ -199,6 +199,7 @@ router.post("/signin", async (req: Request, res: Response) => {
       },
     });
   } catch (error: any) {
+    console.log("error:", error);
     logger.error({ error }, "Signin error");
     handleGrpcError(res, error);
   }
@@ -425,7 +426,7 @@ router.delete("/account", authenticate, async (req: Request, res: Response) => {
 router.get(
   "/",
   authenticate,
-  authorize("admin"),
+  authorizeRoles("admin"),
   async (req: Request, res: Response) => {
     try {
       const { page = 1, limit = 10, search } = req.query;
@@ -457,7 +458,7 @@ router.get(
 router.get(
   "/:id",
   authenticate,
-  authorize("admin"),
+  authorizeRoles("admin"),
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -482,7 +483,7 @@ router.get(
 router.put(
   "/:id",
   authenticate,
-  authorize("admin"),
+  authorizeRoles("admin"),
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -515,7 +516,7 @@ router.put(
 router.delete(
   "/:id",
   authenticate,
-  authorize("admin"),
+  authorizeRoles("admin"),
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
