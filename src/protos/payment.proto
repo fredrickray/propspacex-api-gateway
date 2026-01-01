@@ -1,0 +1,229 @@
+syntax = "proto3";
+
+package payment;
+
+service PaymentService {
+  // Payment Initialization
+  rpc InitializePayment(InitializePaymentRequest) returns (PaymentResponse);
+  rpc VerifyPayment(VerifyPaymentRequest) returns (PaymentResponse);
+  
+  // Payment Management
+  rpc GetPayment(GetPaymentRequest) returns (PaymentResponse);
+  rpc GetUserPayments(GetUserPaymentsRequest) returns (PaymentsResponse);
+  rpc GetPropertyPayments(GetPropertyPaymentsRequest) returns (PaymentsResponse);
+  
+  // Subscriptions
+  rpc CreateSubscription(CreateSubscriptionRequest) returns (SubscriptionResponse);
+  rpc CancelSubscription(CancelSubscriptionRequest) returns (SubscriptionResponse);
+  rpc GetUserSubscriptions(GetUserSubscriptionsRequest) returns (SubscriptionsResponse);
+  
+  // Refunds
+  rpc RequestRefund(RefundRequest) returns (RefundResponse);
+  rpc ProcessRefund(ProcessRefundRequest) returns (RefundResponse);
+  
+  // Transactions
+  rpc GetTransactionHistory(GetTransactionHistoryRequest) returns (TransactionsResponse);
+  
+  // Webhook
+  rpc HandleWebhook(WebhookRequest) returns (WebhookResponse);
+}
+
+// Common Messages
+message MessageResponse {
+  string message = 1;
+  bool success = 2;
+}
+
+// Payment Messages
+message Payment {
+  string id = 1;
+  string userId = 2;
+  string propertyId = 3;
+  string type = 4; // "booking", "purchase", "subscription", "rent"
+  double amount = 5;
+  string currency = 6;
+  string status = 7; // "pending", "success", "failed", "refunded"
+  string paymentMethod = 8;
+  string reference = 9;
+  string transactionId = 10;
+  string gateway = 11; // "paystack", "flutterwave", "stripe"
+  string metadata = 12; // JSON string
+  string createdAt = 13;
+  string updatedAt = 14;
+}
+
+message InitializePaymentRequest {
+  string userId = 1;
+  string propertyId = 2;
+  string type = 3;
+  double amount = 4;
+  string currency = 5;
+  string email = 6;
+  string gateway = 7;
+  string callbackUrl = 8;
+  string metadata = 9;
+}
+
+message PaymentResponse {
+  bool success = 1;
+  string message = 2;
+  Payment payment = 3;
+  string authorizationUrl = 4;
+  string accessCode = 5;
+}
+
+message VerifyPaymentRequest {
+  string reference = 1;
+  string gateway = 2;
+}
+
+message GetPaymentRequest {
+  string paymentId = 1;
+}
+
+message GetUserPaymentsRequest {
+  string userId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+  string status = 4;
+  string type = 5;
+}
+
+message GetPropertyPaymentsRequest {
+  string propertyId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message PaymentsResponse {
+  bool success = 1;
+  repeated Payment payments = 2;
+  int32 total = 3;
+  int32 page = 4;
+  int32 totalPages = 5;
+}
+
+// Subscription Messages
+message Subscription {
+  string id = 1;
+  string userId = 2;
+  string planId = 3;
+  string planName = 4;
+  double amount = 5;
+  string currency = 6;
+  string status = 7; // "active", "cancelled", "expired"
+  string interval = 8; // "monthly", "yearly"
+  string startDate = 9;
+  string endDate = 10;
+  string nextBillingDate = 11;
+  string subscriptionCode = 12;
+  string createdAt = 13;
+}
+
+message CreateSubscriptionRequest {
+  string userId = 1;
+  string planId = 2;
+  string email = 3;
+  string gateway = 4;
+  string callbackUrl = 5;
+}
+
+message SubscriptionResponse {
+  bool success = 1;
+  string message = 2;
+  Subscription subscription = 3;
+  string authorizationUrl = 4;
+}
+
+message CancelSubscriptionRequest {
+  string subscriptionId = 1;
+  string userId = 2;
+}
+
+message GetUserSubscriptionsRequest {
+  string userId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message SubscriptionsResponse {
+  bool success = 1;
+  repeated Subscription subscriptions = 2;
+  int32 total = 3;
+  int32 page = 4;
+  int32 totalPages = 5;
+}
+
+// Refund Messages
+message Refund {
+  string id = 1;
+  string paymentId = 2;
+  string userId = 3;
+  double amount = 4;
+  string currency = 5;
+  string reason = 6;
+  string status = 7; // "pending", "approved", "rejected", "processed"
+  string processedAt = 8;
+  string createdAt = 9;
+}
+
+message RefundRequest {
+  string paymentId = 1;
+  string userId = 2;
+  string reason = 3;
+}
+
+message RefundResponse {
+  bool success = 1;
+  string message = 2;
+  Refund refund = 3;
+}
+
+message ProcessRefundRequest {
+  string refundId = 1;
+  bool approve = 2;
+  string adminNote = 3;
+}
+
+// Transaction Messages
+message Transaction {
+  string id = 1;
+  string userId = 2;
+  string type = 3;
+  double amount = 4;
+  string currency = 5;
+  string status = 6;
+  string description = 7;
+  string reference = 8;
+  string createdAt = 9;
+}
+
+message GetTransactionHistoryRequest {
+  string userId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+  string type = 4;
+  string startDate = 5;
+  string endDate = 6;
+}
+
+message TransactionsResponse {
+  bool success = 1;
+  repeated Transaction transactions = 2;
+  int32 total = 3;
+  int32 page = 4;
+  int32 totalPages = 5;
+}
+
+// Webhook Messages
+message WebhookRequest {
+  string gateway = 1;
+  string event = 2;
+  string payload = 3; // JSON string
+  string signature = 4;
+}
+
+message WebhookResponse {
+  bool success = 1;
+  string message = 2;
+}

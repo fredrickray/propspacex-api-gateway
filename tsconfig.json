@@ -21,7 +21,10 @@
       "@utils/*": ["src/utils/*"],
       "@property/*": ["src/v1/feat/property/*"],
       "@validations/*": ["src/validations/*"],
-      "@grpc/*": ["src/grpc/*"]
+      "@grpc/*": ["src/grpc/*"],
+      "@grpc-clients/*": ["src/grpc-clients/*"],
+      "@routes/*": ["src/routes/*"],
+      "@protos/*": ["src/protos/*"]
     }
   },
   "exclude": ["node_modules"]
