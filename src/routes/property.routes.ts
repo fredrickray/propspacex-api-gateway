@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { propertyService } from "../grpc-clients";
 import {
   authenticate,
-  authorize,
+  authorizeRoles,
   optionalAuth,
 } from "@middlewares/auth.middleware";
 import logger from "@utils/logger";
@@ -169,7 +169,7 @@ router.get("/:id/reviews", async (req: Request, res: Response) => {
 router.post(
   "/",
   authenticate,
-  authorize("agent", "landlord", "admin"),
+  authorizeRoles("agent", "landlord", "admin"),
   async (req: Request, res: Response) => {
     try {
       const ownerId = req.user!.userId;

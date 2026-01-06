@@ -4,8 +4,7 @@ import path from "path";
 import config from "@config/service.config";
 import logger from "@utils/logger";
 
-// Proto loader options
-const PROTO_OPTIONS: protoLoader.Options = {
+const protoLoaderOptions: protoLoader.Options = {
   keepCase: true,
   longs: String,
   enums: String,
@@ -13,70 +12,344 @@ const PROTO_OPTIONS: protoLoader.Options = {
   oneofs: true,
 };
 
-// User service proto path
-const USER_PROTO_PATH = path.join(__dirname, "../protos/user.proto");
+export interface SigninRequest {
+  email: string;
+  password: string;
+}
 
-// Load user proto definition
-const userPackageDefinition = protoLoader.loadSync(
-  USER_PROTO_PATH,
-  PROTO_OPTIONS
-);
-const userProto = grpc.loadPackageDefinition(userPackageDefinition) as any;
+export interface SigninResponse {
+  success: boolean;
+  user: UserResponse | null;
+  error: string;
+  accessToken: string;
+  refreshToken: string;
+}
 
-// Create user service client
-const userServiceAddress = `${config.userService.host}:${config.userService.port}`;
-const userClient = new userProto.user.UserService(
-  userServiceAddress,
-  grpc.credentials.createInsecure()
-);
+export interface SignupRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  appRole?: string;
+}
 
-logger.info({ address: userServiceAddress }, "User gRPC client initialized");
+export interface SignupResponse {
+  success: boolean;
+  userId: string;
+  message: string;
+  error: string;
+}
 
-// Promisify gRPC calls
-const promisifyGrpcCall = <T>(
-  client: any,
-  method: string,
-  request: any
-): Promise<T> => {
-  return new Promise((resolve, reject) => {
-    client[method](request, (error: grpc.ServiceError | null, response: T) => {
-      if (error) {
-        logger.error({ error, method }, "gRPC call failed");
-        reject(error);
-      } else {
-        resolve(response);
-      }
+export interface VerifyOTPRequest {
+  email: string;
+  otp: string;
+}
+
+export interface VerifyOTPResponse {
+  success: boolean;
+  message: string;
+  error: string;
+}
+
+export interface ResendOTPRequest {
+  email: string;
+}
+
+export interface ResendOTPResponse {
+  success: boolean;
+  message: string;
+  error: string;
+}
+
+export interface UserResponse {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  isVerified: boolean;
+  isAccountActive: boolean;
+  appRole: string;
+  lastLoginDate: { seconds: string; nanos: number } | null;
+  loginAttempts: number;
+  allowedLoginAttempts: number;
+  loginCooldown: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GetUserRequest {
+  userId: string;
+}
+
+export interface GetUserEmailRequest {
+  email: string;
+}
+
+export interface ListUsersRequest {
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+export interface ListUsersResponse {
+  users: UserResponse[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface CreateUserRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  phone: string;
+}
+
+export interface CreateUserResponse {
+  success: boolean;
+  userId: string;
+}
+
+export interface UpdateUserRequest {
+  userId: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface UpdateUserResponse {
+  success: boolean;
+}
+
+export interface DeleteUserRequest {
+  userId: string;
+}
+
+export interface DeleteUserResponse {
+  success: boolean;
+}
+
+// Security & Device Types
+export interface ValidateTokenRequest {
+  accessToken: string;
+}
+
+export interface ValidateTokenResponse {
+  valid: boolean;
+  userId: string;
+  email: string;
+  appRole: string;
+  isVerified: boolean;
+  isAccountActive: boolean;
+  error: string;
+}
+
+export interface RegisterDeviceRequest {
+  userId: string;
+  ipAddress: string;
+  userAgent: string;
+  isTrusted?: boolean;
+}
+
+export interface RegisterDeviceResponse {
+  success: boolean;
+  deviceId: string;
+  isNewDevice: boolean;
+  isSuspicious: boolean;
+}
+
+export interface LogActivityRequest {
+  event: string;
+  userId: string;
+  ipAddress?: string;
+  userAgent?: string;
+  deviceId?: string;
+  metadata?: string;
+}
+
+export interface LogActivityResponse {
+  success: boolean;
+}
+
+export interface CheckDeviceTrustRequest {
+  userId: string;
+  deviceId: string;
+}
+
+export interface CheckDeviceTrustResponse {
+  isTrusted: boolean;
+}
+
+export class UserServiceClient {
+  private client: any;
+  private connected: boolean = false;
+
+  /**
+   * Create a new User Service client
+   * @param address - gRPC server address (e.g., 'localhost:50051' or 'user-service:50051')
+   * @param protoPath - Optional custom path to user.proto file
+   */
+  constructor(private address: string, protoPath?: string) {
+    const PROTO_PATH =
+      protoPath || path.join(__dirname, "../protos/user.proto");
+    const packageDefinition = protoLoader.loadSync(
+      PROTO_PATH,
+      protoLoaderOptions
+    );
+    const userProto = grpc.loadPackageDefinition(packageDefinition) as any;
+
+    this.client = new userProto.user.UserService(
+      address,
+      grpc.credentials.createInsecure()
+    );
+
+    logger.info({ address }, "User gRPC client initialized");
+  }
+
+  private promisify<T>(
+    method: string,
+    params: Record<string, any>
+  ): Promise<T> {
+    return new Promise((resolve, reject) => {
+      this.client[method](
+        params,
+        (error: grpc.ServiceError | null, response: T) => {
+          if (error) {
+            logger.error({ error, method }, "gRPC call failed");
+            reject(error);
+          } else {
+            resolve(response);
+          }
+        }
+      );
     });
-  });
+  }
+
+  async signin(params: SigninRequest): Promise<SigninResponse> {
+    return this.promisify<SigninResponse>("Signin", params);
+  }
+
+  async signup(params: SignupRequest): Promise<SignupResponse> {
+    return this.promisify<SignupResponse>("Signup", params);
+  }
+
+  async verifyOTP(params: VerifyOTPRequest): Promise<VerifyOTPResponse> {
+    return this.promisify<VerifyOTPResponse>("VerifyOTP", params);
+  }
+
+  async resendOTP(params: ResendOTPRequest): Promise<ResendOTPResponse> {
+    return this.promisify<ResendOTPResponse>("ResendOTP", params);
+  }
+
+  async createUser(params: CreateUserRequest): Promise<CreateUserResponse> {
+    return this.promisify<CreateUserResponse>("CreateUser", params);
+  }
+
+  async getUser(params: GetUserRequest): Promise<UserResponse> {
+    return this.promisify<UserResponse>("GetUser", params);
+  }
+
+  async getUserByEmail(params: GetUserEmailRequest): Promise<UserResponse> {
+    return this.promisify<UserResponse>("GetUserEmail", params);
+  }
+
+  async listUsers(params: ListUsersRequest = {}): Promise<ListUsersResponse> {
+    return this.promisify<ListUsersResponse>("ListUsers", {
+      page: params.page || 1,
+      limit: params.limit || 10,
+      search: params.search || "",
+    });
+  }
+
+  async updateUser(params: UpdateUserRequest): Promise<UpdateUserResponse> {
+    return this.promisify<UpdateUserResponse>("UpdateUser", params);
+  }
+
+  async deleteUser(params: DeleteUserRequest): Promise<DeleteUserResponse> {
+    return this.promisify<DeleteUserResponse>("DeleteUser", params);
+  }
+
+  // ==================== Security & Device Methods ====================
+
+  async validateToken(
+    params: ValidateTokenRequest
+  ): Promise<ValidateTokenResponse> {
+    return this.promisify<ValidateTokenResponse>("ValidateToken", params);
+  }
+
+  async registerDevice(
+    params: RegisterDeviceRequest
+  ): Promise<RegisterDeviceResponse> {
+    return this.promisify<RegisterDeviceResponse>("RegisterDevice", params);
+  }
+
+  async logActivity(params: LogActivityRequest): Promise<LogActivityResponse> {
+    return this.promisify<LogActivityResponse>("LogActivity", params);
+  }
+
+  async checkDeviceTrust(
+    params: CheckDeviceTrustRequest
+  ): Promise<CheckDeviceTrustResponse> {
+    return this.promisify<CheckDeviceTrustResponse>("CheckDeviceTrust", params);
+  }
+
+  close(): void {
+    if (this.client) {
+      grpc.closeClient(this.client);
+      logger.info("User gRPC client closed");
+    }
+  }
+
+  async waitForReady(timeoutMs: number = 5000): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const deadline = Date.now() + timeoutMs;
+      this.client.waitForReady(deadline, (error: any) => {
+        if (error) {
+          reject(
+            new Error(
+              `Failed to connect to user service at ${this.address}: ${error.message}`
+            )
+          );
+        } else {
+          this.connected = true;
+          logger.info({ address: this.address }, "User gRPC client connected");
+          resolve();
+        }
+      });
+    });
+  }
+
+  isConnected(): boolean {
+    return this.connected;
+  }
+}
+
+let defaultClient: UserServiceClient | null = null;
+
+/**
+ * Get or create a singleton User Service client
+ * @param address
+ */
+export const getUserClient = (address?: string): UserServiceClient => {
+  if (!defaultClient) {
+    const serverAddress =
+      address || `${config.userService.host}:${config.userService.port}`;
+    defaultClient = new UserServiceClient(serverAddress);
+  }
+  return defaultClient;
 };
 
-// User Service Methods - Maps to microservice's UserService
-export const userService = {
-  // Authentication
-  signin: (data: any) => promisifyGrpcCall(userClient, "Signin", data),
-
-  signup: (data: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    password: string;
-    appRole?: string;
-  }) => promisifyGrpcCall(userClient, "signup", data),
-
-  verifyOTP: (data: { email: string; otp: string }) =>
-    promisifyGrpcCall(userClient, "verifyOTP", data),
-
-  resendOTP: (data: { email: string }) =>
-    promisifyGrpcCall(userClient, "resendOTP", data),
-
-  // User CRUD
-  createUser: (data: any) => promisifyGrpcCall(userClient, "CreateUser", data),
-  getUser: (data: any) => promisifyGrpcCall(userClient, "GetUser", data),
-  getUserByEmail: (data: any) =>
-    promisifyGrpcCall(userClient, "GetUserEmail", data),
-  listUsers: (data: any) => promisifyGrpcCall(userClient, "ListUsers", data),
-  updateUser: (data: any) => promisifyGrpcCall(userClient, "UpdateUser", data),
-  deleteUser: (data: any) => promisifyGrpcCall(userClient, "DeleteUser", data),
+export const closeUserClient = (): void => {
+  if (defaultClient) {
+    defaultClient.close();
+    defaultClient = null;
+  }
 };
 
-export default userClient;
+// Create and export a singleton instance for direct usage
+export const userService = getUserClient();
+
+export default UserServiceClient;

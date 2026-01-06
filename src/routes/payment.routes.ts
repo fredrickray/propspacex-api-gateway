@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { paymentService } from "../grpc-clients";
-import { authenticate, authorize } from "@middlewares/auth.middleware";
+import { authenticate, authorizeRoles } from "@middlewares/auth.middleware";
 import logger from "@utils/logger";
 
 const router = Router();
@@ -279,7 +279,7 @@ router.post(
 router.put(
   "/refunds/:id/process",
   authenticate,
-  authorize("admin"),
+  authorizeRoles("admin"),
   async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
