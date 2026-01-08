@@ -187,6 +187,7 @@ message ListPropertiesRequest {
   string ownerId = 12;
   bool isActive = 13;
   string search = 14;
+  bool filterByActive = 15;
 }
 
 message GetPropertiesByOwnerRequest {

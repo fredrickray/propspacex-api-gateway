@@ -62,48 +62,44 @@ export const propertyService = {
     promisifyGrpcCall(propertyClient, "CreateProperty", data),
   getProperty: (data: any) =>
     promisifyGrpcCall(propertyClient, "GetProperty", data),
+  getPropertyWithOwner: (data: any) =>
+    promisifyGrpcCall(propertyClient, "GetPropertyWithOwner", data),
   updateProperty: (data: any) =>
     promisifyGrpcCall(propertyClient, "UpdateProperty", data),
   deleteProperty: (data: any) =>
     promisifyGrpcCall(propertyClient, "DeleteProperty", data),
+  hardDeleteProperty: (data: any) =>
+    promisifyGrpcCall(propertyClient, "HardDeleteProperty", data),
 
   // Property Listings
   getProperties: (data: any) =>
-    promisifyGrpcCall(propertyClient, "GetProperties", data),
+    promisifyGrpcCall(propertyClient, "ListProperties", data),
+  listProperties: (data: any) =>
+    promisifyGrpcCall(propertyClient, "ListProperties", data),
   getPropertiesByOwner: (data: any) =>
     promisifyGrpcCall(propertyClient, "GetPropertiesByOwner", data),
   searchProperties: (data: any) =>
-    promisifyGrpcCall(propertyClient, "SearchProperties", data),
-  getFeaturedProperties: (data: any) =>
-    promisifyGrpcCall(propertyClient, "GetFeaturedProperties", data),
+    promisifyGrpcCall(propertyClient, "SearchByLocation", data),
+  searchByLocation: (data: any) =>
+    promisifyGrpcCall(propertyClient, "SearchByLocation", data),
 
   // Property Status
   updatePropertyStatus: (data: any) =>
     promisifyGrpcCall(propertyClient, "UpdatePropertyStatus", data),
-  markAsSold: (data: any) =>
-    promisifyGrpcCall(propertyClient, "MarkAsSold", data),
-  markAsRented: (data: any) =>
-    promisifyGrpcCall(propertyClient, "MarkAsRented", data),
 
   // Property Media
-  addPropertyImages: (data: any) =>
-    promisifyGrpcCall(propertyClient, "AddPropertyImages", data),
-  removePropertyImage: (data: any) =>
-    promisifyGrpcCall(propertyClient, "RemovePropertyImage", data),
+  updatePropertyMedia: (data: any) =>
+    promisifyGrpcCall(propertyClient, "UpdatePropertyMedia", data),
+  addPropertyMedia: (data: any) =>
+    promisifyGrpcCall(propertyClient, "AddPropertyMedia", data),
 
-  // Favorites
-  addToFavorites: (data: any) =>
-    promisifyGrpcCall(propertyClient, "AddToFavorites", data),
-  removeFromFavorites: (data: any) =>
-    promisifyGrpcCall(propertyClient, "RemoveFromFavorites", data),
-  getUserFavorites: (data: any) =>
-    promisifyGrpcCall(propertyClient, "GetUserFavorites", data),
+  // Blockchain
+  updateBlockchainInfo: (data: any) =>
+    promisifyGrpcCall(propertyClient, "UpdateBlockchainInfo", data),
 
-  // Reviews
-  addPropertyReview: (data: any) =>
-    promisifyGrpcCall(propertyClient, "AddPropertyReview", data),
-  getPropertyReviews: (data: any) =>
-    promisifyGrpcCall(propertyClient, "GetPropertyReviews", data),
+  // Statistics
+  getOwnerPropertyStats: (data: any) =>
+    promisifyGrpcCall(propertyClient, "GetOwnerPropertyStats", data),
 };
 
 export default propertyClient;

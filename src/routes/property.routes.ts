@@ -37,25 +37,46 @@ router.get("/", async (req: Request, res: Response) => {
     const {
       page = 1,
       limit = 10,
+      sort,
       type,
-      listingType,
       status,
+      minPrice,
+      maxPrice,
       city,
-      state,
+      country,
+      bedrooms,
+      bathrooms,
+      ownerId,
+      isActive,
+      search,
     } = req.query;
 
-    const response = await propertyService.getProperties({
+    const requestParams = {
       page: Number(page),
       limit: Number(limit),
+      sort: sort as string,
       type: type as string,
-      listingType: listingType as string,
       status: status as string,
+      minPrice: minPrice ? Number(minPrice) : undefined,
+      maxPrice: maxPrice ? Number(maxPrice) : undefined,
       city: city as string,
-      state: state as string,
-    });
+      country: country as string,
+      bedrooms: bedrooms ? Number(bedrooms) : undefined,
+      bathrooms: bathrooms ? Number(bathrooms) : undefined,
+      ownerId: ownerId as string,
+      isActive: isActive !== undefined ? isActive === "true" : undefined,
+      search: search as string,
+    };
+
+    logger.info({ requestParams }, "ListProperties request params");
+
+    const response = await propertyService.getProperties(requestParams);
+
+    logger.info({ response }, "ListProperties response from gRPC");
 
     res.status(200).json(response);
   } catch (error) {
+    console.log("error", error);
     handleGrpcError(res, error);
   }
 });
@@ -101,24 +122,25 @@ router.get("/search", async (req: Request, res: Response) => {
   }
 });
 
-/**
- * @route   GET /api/properties/featured
- * @desc    Get featured properties
- * @access  Public
- */
-router.get("/featured", async (req: Request, res: Response) => {
-  try {
-    const { limit = 10 } = req.query;
-
-    const response = await propertyService.getFeaturedProperties({
-      limit: Number(limit),
-    });
-
-    res.status(200).json(response);
-  } catch (error) {
-    handleGrpcError(res, error);
-  }
-});
+// TODO: Uncomment when GetFeaturedProperties RPC is added to property.proto
+// /**
+//  * @route   GET /api/properties/featured
+//  * @desc    Get featured properties
+//  * @access  Public
+//  */
+// router.get("/featured", async (req: Request, res: Response) => {
+//   try {
+//     const { limit = 10 } = req.query;
+//
+//     const response = await propertyService.getFeaturedProperties({
+//       limit: Number(limit),
+//     });
+//
+//     res.status(200).json(response);
+//   } catch (error) {
+//     handleGrpcError(res, error);
+//   }
+// });
 
 /**
  * @route   GET /api/properties/:id
@@ -137,27 +159,28 @@ router.get("/:id", async (req: Request, res: Response) => {
   }
 });
 
-/**
- * @route   GET /api/properties/:id/reviews
- * @desc    Get property reviews
- * @access  Public
- */
-router.get("/:id/reviews", async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { page = 1, limit = 10 } = req.query;
-
-    const response = await propertyService.getPropertyReviews({
-      propertyId: id,
-      page: Number(page),
-      limit: Number(limit),
-    });
-
-    res.status(200).json(response);
-  } catch (error) {
-    handleGrpcError(res, error);
-  }
-});
+// TODO: Uncomment when GetPropertyReviews RPC is added to property.proto
+// /**
+//  * @route   GET /api/properties/:id/reviews
+//  * @desc    Get property reviews
+//  * @access  Public
+//  */
+// router.get("/:id/reviews", async (req: Request, res: Response) => {
+//   try {
+//     const { id } = req.params;
+//     const { page = 1, limit = 10 } = req.query;
+//
+//     const response = await propertyService.getPropertyReviews({
+//       propertyId: id,
+//       page: Number(page),
+//       limit: Number(limit),
+//     });
+//
+//     res.status(200).json(response);
+//   } catch (error) {
+//     handleGrpcError(res, error);
+//   }
+// });
 
 // ==================== Protected Property Routes ====================
 
@@ -177,24 +200,28 @@ router.post(
         title,
         description,
         type,
-        listingType,
+        status,
         price,
         currency,
-        address,
+        location,
         features,
-        images,
+        size,
+        amenities,
+        media,
       } = req.body;
 
       const response = await propertyService.createProperty({
         title,
         description,
         type,
-        listingType,
+        status,
         price,
         currency,
-        address,
+        location,
         features,
-        images,
+        size,
+        amenities,
+        media,
         ownerId,
       });
 
@@ -403,113 +430,115 @@ router.delete(
   }
 );
 
-// ==================== Favorites Routes ====================
+// TODO: Uncomment Favorites routes when RPCs are added to property.proto
+// // ==================== Favorites Routes ====================
+//
+// /**
+//  * @route   POST /api/properties/:id/favorite
+//  * @desc    Add property to favorites
+//  * @access  Private
+//  */
+// router.post(
+//   "/:id/favorite",
+//   authenticate,
+//   async (req: Request, res: Response) => {
+//     try {
+//       const { id } = req.params;
+//       const userId = req.user!.userId;
+//
+//       const response = await propertyService.addToFavorites({
+//         userId,
+//         propertyId: id,
+//       });
+//
+//       res.status(200).json(response);
+//     } catch (error) {
+//       handleGrpcError(res, error);
+//     }
+//   }
+// );
+//
+// /**
+//  * @route   DELETE /api/properties/:id/favorite
+//  * @desc    Remove property from favorites
+//  * @access  Private
+//  */
+// router.delete(
+//   "/:id/favorite",
+//   authenticate,
+//   async (req: Request, res: Response) => {
+//     try {
+//       const { id } = req.params;
+//       const userId = req.user!.userId;
+//
+//       const response = await propertyService.removeFromFavorites({
+//         userId,
+//         propertyId: id,
+//       });
+//
+//       res.status(200).json(response);
+//     } catch (error) {
+//       handleGrpcError(res, error);
+//     }
+//   }
+// );
+//
+// /**
+//  * @route   GET /api/properties/favorites/me
+//  * @desc    Get user's favorite properties
+//  * @access  Private
+//  */
+// router.get(
+//   "/favorites/me",
+//   authenticate,
+//   async (req: Request, res: Response) => {
+//     try {
+//       const userId = req.user!.userId;
+//       const { page = 1, limit = 10 } = req.query;
+//
+//       const response = await propertyService.getUserFavorites({
+//         userId,
+//         page: Number(page),
+//         limit: Number(limit),
+//       });
+//
+//       res.status(200).json(response);
+//     } catch (error) {
+//       handleGrpcError(res, error);
+//     }
+//   }
+// );
 
-/**
- * @route   POST /api/properties/:id/favorite
- * @desc    Add property to favorites
- * @access  Private
- */
-router.post(
-  "/:id/favorite",
-  authenticate,
-  async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const userId = req.user!.userId;
-
-      const response = await propertyService.addToFavorites({
-        userId,
-        propertyId: id,
-      });
-
-      res.status(200).json(response);
-    } catch (error) {
-      handleGrpcError(res, error);
-    }
-  }
-);
-
-/**
- * @route   DELETE /api/properties/:id/favorite
- * @desc    Remove property from favorites
- * @access  Private
- */
-router.delete(
-  "/:id/favorite",
-  authenticate,
-  async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const userId = req.user!.userId;
-
-      const response = await propertyService.removeFromFavorites({
-        userId,
-        propertyId: id,
-      });
-
-      res.status(200).json(response);
-    } catch (error) {
-      handleGrpcError(res, error);
-    }
-  }
-);
-
-/**
- * @route   GET /api/properties/favorites/me
- * @desc    Get user's favorite properties
- * @access  Private
- */
-router.get(
-  "/favorites/me",
-  authenticate,
-  async (req: Request, res: Response) => {
-    try {
-      const userId = req.user!.userId;
-      const { page = 1, limit = 10 } = req.query;
-
-      const response = await propertyService.getUserFavorites({
-        userId,
-        page: Number(page),
-        limit: Number(limit),
-      });
-
-      res.status(200).json(response);
-    } catch (error) {
-      handleGrpcError(res, error);
-    }
-  }
-);
-
-// ==================== Reviews Routes ====================
-
-/**
- * @route   POST /api/properties/:id/reviews
- * @desc    Add a review to property
- * @access  Private
- */
-router.post(
-  "/:id/reviews",
-  authenticate,
-  async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const userId = req.user!.userId;
-      const { rating, comment } = req.body;
-
-      const response = await propertyService.addPropertyReview({
-        propertyId: id,
-        userId,
-        rating,
-        comment,
-      });
-
-      logger.info({ propertyId: id, userId }, "Review added to property");
-      res.status(201).json(response);
-    } catch (error) {
-      handleGrpcError(res, error);
-    }
-  }
-);
+// TODO: Uncomment Reviews routes when RPCs are added to property.proto
+// // ==================== Reviews Routes ====================
+//
+// /**
+//  * @route   POST /api/properties/:id/reviews
+//  * @desc    Add a review to property
+//  * @access  Private
+//  */
+// router.post(
+//   "/:id/reviews",
+//   authenticate,
+//   async (req: Request, res: Response) => {
+//     try {
+//       const { id } = req.params;
+//       const userId = req.user!.userId;
+//       const { rating, comment } = req.body;
+//
+//       const response = await propertyService.addPropertyReview({
+//         propertyId: id,
+//         userId,
+//         rating,
+//         comment,
+//       });
+//
+//       logger.info({ propertyId: id, userId }, "Review added to property");
+//       res.status(201).json(response);
+//     } catch (error) {
+//       handleGrpcError(res, error);
+//     }
+//   }
+// );
 
 export default router;

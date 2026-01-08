@@ -52,9 +52,24 @@ export default class GatewayAuthMiddleware {
     return req.headers["user-agent"] || "unknown";
   }
 
+  static async attachRequestMetadata(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    req.ipAddress = GatewayAuthMiddleware.extractIpAddress(req);
+    req.userAgent = GatewayAuthMiddleware.extractUserAgent(req);
+
+    // Forward to downstream services
+    req.headers["x-client-ip"] = req.ipAddress;
+    req.headers["x-user-agent"] = req.userAgent;
+
+    next();
+  }
+
   static async authenticate(req: Request, res: Response, next: NextFunction) {
     try {
-      const accessToken = this.extractAccessToken(req);
+      const accessToken = GatewayAuthMiddleware.extractAccessToken(req);
 
       if (!accessToken) {
         return res.status(401).json({
@@ -86,8 +101,8 @@ export default class GatewayAuthMiddleware {
         });
       }
 
-      const ipAddress = this.extractIpAddress(req);
-      const userAgent = this.extractUserAgent(req);
+      const ipAddress = GatewayAuthMiddleware.extractIpAddress(req);
+      const userAgent = GatewayAuthMiddleware.extractUserAgent(req);
 
       // Register device via User Service (async, don't block request)
       userClient
@@ -138,10 +153,10 @@ export default class GatewayAuthMiddleware {
   }
 
   static async optionalAuth(req: Request, res: Response, next: NextFunction) {
-    const accessToken = this.extractAccessToken(req);
+    const accessToken = GatewayAuthMiddleware.extractAccessToken(req);
 
-    req.ipAddress = this.extractIpAddress(req);
-    req.userAgent = this.extractUserAgent(req);
+    req.ipAddress = GatewayAuthMiddleware.extractIpAddress(req);
+    req.userAgent = GatewayAuthMiddleware.extractUserAgent(req);
     req.headers["x-client-ip"] = req.ipAddress;
     req.headers["x-user-agent"] = req.userAgent;
 
@@ -303,6 +318,8 @@ export const rateLimit = (
   };
 };
 
+export const attachRequestMetadata =
+  GatewayAuthMiddleware.attachRequestMetadata;
 export const authenticate = GatewayAuthMiddleware.authenticate;
 export const optionalAuth = GatewayAuthMiddleware.optionalAuth;
 export const authorizeRoles = GatewayAuthMiddleware.authorizeRoles;
