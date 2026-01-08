@@ -1,12 +1,20 @@
 import { Router } from "express";
+import { createProxyMiddleware } from "http-proxy-middleware";
+import {
+  authenticate,
+  authorizeRoles,
+  requireTrustedDevice,
+  logActivity,
+  attachRequestMetadata,
+} from "@middlewares/auth.middleware";
 import userRoutes from "./user.routes";
 import propertyRoutes from "./property.routes";
 import paymentRoutes from "./payment.routes";
 
-const router = Router();
+const indexRouter = Router();
 
 // Health check endpoint
-router.get("/health", (req, res) => {
+indexRouter.get("/health", (req, res) => {
   res.status(200).json({
     success: true,
     message: "API Gateway is running",
@@ -15,9 +23,9 @@ router.get("/health", (req, res) => {
 });
 
 // Mount service routes
-router.use("/auth", userRoutes);
-router.use("/users", userRoutes);
-router.use("/properties", propertyRoutes);
-router.use("/payments", paymentRoutes);
+indexRouter.use("/auth", attachRequestMetadata, userRoutes);
+indexRouter.use("/users", attachRequestMetadata, userRoutes);
+indexRouter.use("/properties", attachRequestMetadata, propertyRoutes);
+indexRouter.use("/payments", attachRequestMetadata, paymentRoutes);
 
-export default router;
+export default indexRouter;
