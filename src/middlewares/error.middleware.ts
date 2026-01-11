@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import logger from "@utils/logger";
 export class HttpError extends Error {
   public status: number;
   public details: Record<string, any>;
@@ -120,6 +121,13 @@ export const errorHandler = (
   if (err.details != null) {
     responsePayload.details = err.details;
   }
+
+  logger.error({
+    error: err.message,
+    stack: err.stack,
+    method: req.method,
+    url: req.originalUrl,
+  });
 
   res.status(statusCode).json(responsePayload);
 };
