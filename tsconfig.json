@@ -24,6 +24,8 @@
       "@grpc/*": ["src/grpc/*"],
       "@grpc-clients/*": ["src/grpc-clients/*"],
       "@routes/*": ["src/routes/*"],
+      "@controllers/*": ["src/controllers/*"],
+      "@type/*": ["src/types/*"],
       "@protos/*": ["src/protos/*"]
     }
   },

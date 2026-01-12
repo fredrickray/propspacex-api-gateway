@@ -6,7 +6,7 @@ const config = {
     userServiceURL: process.env.USER_SERVICE_URL as string,
     propertyServiceURL: process.env.PROPERTY_SERVICE_URL as string,
     paymentServiceURL: process.env.PAYMENT_SERVICE_URL as string,
-    mdeialServiceURL: process.env.MEDIA_SERVICE_URL as string,
+    mediaServiceURL: process.env.MEDIA_SERVICE_URL as string,
     mailerServiceURL: process.env.MAILER_SERVICE_URL as string,
   },
   userService: {
