@@ -6,10 +6,11 @@ import routes from "./routes";
 import logger from "@utils/logger";
 import {
   requestLogger,
-  errorHandler,
+  // errorHandler,
   notFoundHandler,
   corsConfig,
 } from "@middlewares/common.middleware";
+import { errorHandler, routeNotFound } from "@middlewares/error.middleware";
 import { rateLimit } from "@middlewares/auth.middleware";
 
 export default class Server {
@@ -26,16 +27,11 @@ export default class Server {
   private setupMiddleware(): void {
     // Trust proxy for rate limiting behind reverse proxy
     this.app.set("trust proxy", 1);
-    // Security middleware
     this.app.use(helmet());
-    // CORS middleware
     this.app.use(cors(corsConfig));
-    // Body parsing middleware
     this.app.use(express.json({ limit: "10mb" }));
     this.app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-    // Request logging middleware
     this.app.use(requestLogger);
-    // Global rate limiting
     this.app.use(rateLimit(100, 60000)); // 100 requests per minute
   }
 
@@ -44,7 +40,8 @@ export default class Server {
   }
 
   private setupErrorHandling(): void {
-    this.app.use(notFoundHandler);
+    this.app.use(routeNotFound);
+    // this.app.use(notFoundHandler);
     this.app.use(errorHandler);
   }
 
@@ -87,6 +84,7 @@ export default class Server {
             userService: `${config.userService.host}:${config.userService.port}`,
             propertyService: `${config.propertyService.host}:${config.propertyService.port}`,
             paymentService: `${config.paymentService.host}:${config.paymentService.port}`,
+            mediaService: `${config.mediaService.host}:${config.mediaService.port}`,
           },
           "Connected microservices"
         );
