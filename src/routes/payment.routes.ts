@@ -1,25 +1,10 @@
 import { Router, Request, Response } from "express";
 import { paymentService } from "../grpc-clients";
 import { authenticate, authorizeRoles } from "@middlewares/auth.middleware";
+import { handleGrpcError } from "@utils/handleGrpcError";
 import logger from "@utils/logger";
 
 const router = Router();
-
-// Helper to handle gRPC errors
-const handleGrpcError = (res: Response, error: any) => {
-  logger.error({ error }, "Payment service error");
-
-  const statusCode = error.code === 14 ? 503 : error.code === 5 ? 404 : 500;
-  const message =
-    error.code === 14
-      ? "Payment service unavailable"
-      : error.details || "Internal server error";
-
-  res.status(statusCode).json({
-    success: false,
-    message,
-  });
-};
 
 // ==================== Payment Routes ====================
 
@@ -60,7 +45,7 @@ router.post(
       logger.info({ userId, type, amount }, "Payment initialized");
       res.status(200).json(response);
     } catch (error) {
-      handleGrpcError(res, error);
+      handleGrpcError(res, error, "Failed to initialize payment", "Payment");
     }
   }
 );
@@ -86,7 +71,7 @@ router.get(
       logger.info({ reference }, "Payment verified");
       res.status(200).json(response);
     } catch (error) {
-      handleGrpcError(res, error);
+      handleGrpcError(res, error, "Failed to verify payment", "Payment");
     }
   }
 );
@@ -104,7 +89,7 @@ router.get("/:id", authenticate, async (req: Request, res: Response) => {
 
     res.status(200).json(response);
   } catch (error) {
-    handleGrpcError(res, error);
+    handleGrpcError(res, error, "Failed to get payment", "Payment");
   }
 });
 
@@ -128,7 +113,7 @@ router.get("/", authenticate, async (req: Request, res: Response) => {
 
     res.status(200).json(response);
   } catch (error) {
-    handleGrpcError(res, error);
+    handleGrpcError(res, error, "Failed to get payments", "Payment");
   }
 });
 
@@ -153,7 +138,7 @@ router.get(
 
       res.status(200).json(response);
     } catch (error) {
-      handleGrpcError(res, error);
+      handleGrpcError(res, error, "Failed to get property payments", "Payment");
     }
   }
 );
@@ -184,7 +169,7 @@ router.post(
       logger.info({ userId, planId }, "Subscription created");
       res.status(200).json(response);
     } catch (error) {
-      handleGrpcError(res, error);
+      handleGrpcError(res, error, "Failed to create subscription", "Payment");
     }
   }
 );
@@ -210,7 +195,7 @@ router.delete(
       logger.info({ subscriptionId: id, userId }, "Subscription cancelled");
       res.status(200).json(response);
     } catch (error) {
-      handleGrpcError(res, error);
+      handleGrpcError(res, error, "Failed to cancel subscription", "Payment");
     }
   }
 );
@@ -236,7 +221,7 @@ router.get(
 
       res.status(200).json(response);
     } catch (error) {
-      handleGrpcError(res, error);
+      handleGrpcError(res, error, "Failed to get subscriptions", "Payment");
     }
   }
 );
@@ -266,7 +251,7 @@ router.post(
       logger.info({ paymentId: id, userId }, "Refund requested");
       res.status(200).json(response);
     } catch (error) {
-      handleGrpcError(res, error);
+      handleGrpcError(res, error, "Failed to request refund", "Payment");
     }
   }
 );
@@ -294,7 +279,7 @@ router.put(
       logger.info({ refundId: id, approve }, "Refund processed by admin");
       res.status(200).json(response);
     } catch (error) {
-      handleGrpcError(res, error);
+      handleGrpcError(res, error, "Failed to process refund", "Payment");
     }
   }
 );
@@ -325,7 +310,7 @@ router.get(
 
       res.status(200).json(response);
     } catch (error) {
-      handleGrpcError(res, error);
+      handleGrpcError(res, error, "Failed to get transactions", "Payment");
     }
   }
 );
@@ -356,7 +341,7 @@ router.post("/webhook/:gateway", async (req: Request, res: Response) => {
     logger.info({ gateway, event: req.body.event }, "Webhook processed");
     res.status(200).json(response);
   } catch (error) {
-    handleGrpcError(res, error);
+    handleGrpcError(res, error, "Failed to process webhook", "Payment");
   }
 });
 
