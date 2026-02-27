@@ -14,7 +14,7 @@ const PROTO_OPTIONS: protoLoader.Options = {
 };
 
 // Payment service proto path
-const PAYMENT_PROTO_PATH = path.join(__dirname, "../protos/payment.proto");
+const PAYMENT_PROTO_PATH = path.join(__dirname, "../../proto/payment/v1/payment.proto");
 
 // Load payment proto definition
 const paymentPackageDefinition = protoLoader.loadSync(

@@ -36,7 +36,7 @@ export default class Server {
   }
 
   private setupRoutes(): void {
-    this.app.use("/api", routes);
+    this.app.use("/v1/api", routes);
   }
 
   private setupErrorHandling(): void {
