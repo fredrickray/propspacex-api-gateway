@@ -194,7 +194,7 @@ export class UserServiceClient {
    */
   constructor(private address: string, protoPath?: string) {
     const PROTO_PATH =
-      protoPath || path.join(__dirname, "../protos/user.proto");
+      protoPath || path.join(__dirname, "../../proto/user/v1/user.proto");
     const packageDefinition = protoLoader.loadSync(
       PROTO_PATH,
       protoLoaderOptions
