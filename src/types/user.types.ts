@@ -6,6 +6,7 @@ interface UserResponse {
   phone: string;
   isVerified: boolean;
   isAccountActive: boolean;
+  appRole: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -50,6 +51,13 @@ interface ResendOTPResponse {
   error: string;
 }
 
+interface RefreshTokenResponse {
+  success: boolean;
+  accessToken: string;
+  refreshToken: string;
+  error: string;
+}
+
 export {
   UserResponse,
   CreateUserResponse,
@@ -58,4 +66,5 @@ export {
   SignInResponse,
   VerifyOTPResponse,
   ResendOTPResponse,
+  RefreshTokenResponse,
 };
