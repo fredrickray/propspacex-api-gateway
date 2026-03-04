@@ -196,7 +196,7 @@ export default class GatewayAuthMiddleware {
       }
 
       // Admin bypass
-      if (req.user.appRole === "ADMIN") {
+      if (req.user.appRole === "admin") {
         return next();
       }
 

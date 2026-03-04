@@ -183,6 +183,17 @@ export interface CheckDeviceTrustResponse {
   isTrusted: boolean;
 }
 
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export interface RefreshTokenResponse {
+  success: boolean;
+  accessToken: string;
+  refreshToken: string;
+  error: string;
+}
+
 export class UserServiceClient {
   private client: any;
   private connected: boolean = false;
@@ -294,6 +305,12 @@ export class UserServiceClient {
     params: CheckDeviceTrustRequest
   ): Promise<CheckDeviceTrustResponse> {
     return this.promisify<CheckDeviceTrustResponse>("CheckDeviceTrust", params);
+  }
+
+  async refreshToken(
+    params: RefreshTokenRequest
+  ): Promise<RefreshTokenResponse> {
+    return this.promisify<RefreshTokenResponse>("RefreshToken", params);
   }
 
   close(): void {

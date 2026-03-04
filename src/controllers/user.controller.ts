@@ -1,7 +1,5 @@
 import { Request, Response } from "express";
-import jwt from "jsonwebtoken";
 import { userService } from "../grpc-clients";
-import config from "@config/service.config";
 import logger from "@utils/logger";
 import {
   SignInResponse,
@@ -10,26 +8,9 @@ import {
   ResendOTPResponse,
   UserResponse,
   ListUsersResponse,
+  RefreshTokenResponse,
 } from "@type/user.types";
 import { handleGrpcError } from "@utils/handleGrpcError";
-
-const generateTokens = (user: UserResponse) => {
-  const accessToken = jwt.sign(
-    {
-      userId: user.userId,
-      email: user.email,
-      role: "buyer",
-    },
-    config.jwtSecret,
-    { expiresIn: "15m" }
-  );
-
-  const refreshToken = jwt.sign({ userId: user.userId }, config.jwtSecret, {
-    expiresIn: "7d",
-  });
-
-  return { accessToken, refreshToken };
-};
 
 export default class UserController {
   async signup(req: Request, res: Response) {
@@ -103,6 +84,7 @@ export default class UserController {
         "User signed in successfully"
       );
 
+
       res.status(200).json({
         success: true,
         message: "Signed in successfully",
@@ -115,6 +97,7 @@ export default class UserController {
           lastName: user.lastName,
           phone: user.phone,
           isVerified: user.isVerified,
+          appRole: user.appRole,
         },
       });
     } catch (error: any) {
@@ -203,34 +186,25 @@ export default class UserController {
         });
       }
 
-      const decoded = jwt.verify(refreshToken, config.jwtSecret) as {
-        userId: string;
-      };
+      const response = (await userService.refreshToken({
+        refreshToken,
+      })) as RefreshTokenResponse;
 
-      const user = (await userService.getUser({
-        userId: decoded.userId,
-      })) as UserResponse;
-
-      if (!user || !user.isAccountActive) {
+      if (!response.success) {
         return res.status(401).json({
           success: false,
-          message: "Invalid refresh token",
+          message: response.error || "Invalid refresh token",
         });
       }
 
-      // Generate new tokens
-      const tokens = generateTokens(user);
-
       res.status(200).json({
         success: true,
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
       });
-    } catch (error) {
-      res.status(401).json({
-        success: false,
-        message: "Invalid or expired refresh token",
-      });
+    } catch (error: any) {
+      logger.error({ error }, "Refresh token error");
+      handleGrpcError(res, error, "Invalid or expired refresh token", "User");
     }
   }
 
