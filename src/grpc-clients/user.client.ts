@@ -61,6 +61,44 @@ export interface ResendOTPResponse {
   error: string;
 }
 
+export interface RequestWeb3NonceRequest {
+  walletAddress: string;
+  appRole?: string;
+}
+
+export interface RequestWeb3NonceResponse {
+  success: boolean;
+  nonce: string;
+  message: string;
+  error: string;
+}
+
+export interface VerifyWeb3SignatureRequest {
+  walletAddress: string;
+  signature: string;
+  message: string;
+}
+
+export interface VerifyWeb3SignatureResponse {
+  success: boolean;
+  user: UserResponse | null;
+  error: string;
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface LinkWeb3WalletRequest {
+  userId: string;
+  walletAddress: string;
+}
+
+export interface LinkWeb3WalletResponse {
+  success: boolean;
+  message: string;
+  isPrimary: boolean;
+  error: string;
+}
+
 export interface UserResponse {
   userId: string;
   firstName: string;
@@ -253,6 +291,18 @@ export class UserServiceClient {
 
   async resendOTP(params: ResendOTPRequest): Promise<ResendOTPResponse> {
     return this.promisify<ResendOTPResponse>("ResendOTP", params);
+  }
+
+  async requestWeb3Nonce(params: RequestWeb3NonceRequest): Promise<RequestWeb3NonceResponse> {
+    return this.promisify<RequestWeb3NonceResponse>("RequestWeb3Nonce", params);
+  }
+
+  async verifyWeb3Signature(params: VerifyWeb3SignatureRequest): Promise<VerifyWeb3SignatureResponse> {
+    return this.promisify<VerifyWeb3SignatureResponse>("VerifyWeb3Signature", params);
+  }
+
+  async linkWeb3Wallet(params: LinkWeb3WalletRequest): Promise<LinkWeb3WalletResponse> {
+    return this.promisify<LinkWeb3WalletResponse>("LinkWeb3Wallet", params);
   }
 
   async createUser(params: CreateUserRequest): Promise<CreateUserResponse> {

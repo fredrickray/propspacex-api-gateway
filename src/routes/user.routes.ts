@@ -40,6 +40,28 @@ router.post("/resend-otp", userController.resendOTP.bind(userController));
  */
 router.post("/refresh-token", userController.refreshToken.bind(userController));
 
+
+/**
+ * @route   POST /auth/request-web3-nonce
+ * @desc    Request Web3 nonce
+ * @access  Public
+ */
+router.post("/request-web3-nonce", userController.requestWeb3Nonce.bind(userController));
+
+/**
+ * @route   POST /auth/verify-web3-signature
+ * @desc    Verify Web3 signature
+ * @access  Public
+ */
+router.post("/verify-web3-signature", userController.verifyWeb3Signature.bind(userController));
+
+/**
+ * @route   POST /auth/link-web3-wallet
+ * @desc    Link Web3 wallet
+ * @access  Private
+ */
+router.post("/link-web3-wallet", authenticate, userController.linkWeb3Wallet.bind(userController));
+
 /**
  * @route   POST /auth/logout
  * @desc    Logout user (client-side token invalidation)

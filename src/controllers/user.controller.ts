@@ -9,6 +9,9 @@ import {
   UserResponse,
   ListUsersResponse,
   RefreshTokenResponse,
+  RequestWeb3NonceResponse,
+  VerifyWeb3SignatureResponse,
+  LinkWeb3WalletResponse,
 } from "@type/user.types";
 import { handleGrpcError } from "@utils/handleGrpcError";
 
@@ -172,6 +175,115 @@ export default class UserController {
     } catch (error: any) {
       logger.error({ error }, "Resend OTP error");
       handleGrpcError(res, error, "Resend OTP failed", "User");
+    }
+  }
+
+  async requestWeb3Nonce(req: Request, res: Response) {
+    try {
+      const { walletAddress, appRole } = req.body;
+
+      if (!walletAddress) {
+        return res.status(400).json({
+          success: false,
+          message: "Wallet address is required",
+        });
+      }
+
+      const response = (await userService.requestWeb3Nonce({
+        walletAddress,
+        appRole,
+      })) as RequestWeb3NonceResponse;
+
+      if (!response.success) {
+        return res.status(400).json({
+          success: false,
+          message: response.error || "Failed to request nonce",
+        });
+      }
+
+      logger.info({ walletAddress }, "Nonce requested successfully");
+
+      res.status(200).json({
+        success: true,
+        message: response.message,
+      });
+    } catch (error: any) {
+      logger.error({ error }, "Request nonce error");
+      handleGrpcError(res, error, "Request nonce failed", "User");
+    }
+  }
+
+  async verifyWeb3Signature(req: Request, res: Response) {
+    try {
+      const { walletAddress, signature, message } = req.body;
+
+      if (!walletAddress || !signature || !message) {
+        return res.status(400).json({
+          success: false,
+          message: "Wallet address, signature, and message are required",
+        });
+      }
+
+      const response = (await userService.verifyWeb3Signature({
+        walletAddress,
+        signature,
+        message,
+      })) as VerifyWeb3SignatureResponse;
+
+      if (!response.success) {
+        return res.status(400).json({
+          success: false,
+          message: response.error || "Failed to verify signature",
+        });
+      }
+
+      logger.info({ walletAddress }, "Signature verified successfully");
+
+      res.status(200).json({
+        success: true,
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+        user: response.user,
+      });
+    } catch (error: any) {
+      logger.error({ error }, "Verify signature error");
+      handleGrpcError(res, error, "Verify signature failed", "User");
+    }
+  }
+
+  async linkWeb3Wallet(req: Request, res: Response) {
+    try {
+      const { walletAddress } = req.body;
+      const userId = req.user!.userId;
+
+      if (!walletAddress) {
+        return res.status(400).json({
+          success: false,
+          message: "Wallet address is required",
+        });
+      }
+
+      const response = (await userService.linkWeb3Wallet({
+        userId,
+        walletAddress,
+      })) as LinkWeb3WalletResponse;
+
+      if (!response.success) {
+        return res.status(400).json({
+          success: false,
+          message: response.error || "Failed to link wallet",
+        });
+      }
+
+      logger.info({ walletAddress }, "Wallet linked successfully");
+
+      res.status(200).json({
+        success: true,
+        message: response.message,
+      });
+    } catch (error: any) {
+      logger.error({ error }, "Link wallet error");
+      handleGrpcError(res, error, "Link wallet failed", "User");
     }
   }
 

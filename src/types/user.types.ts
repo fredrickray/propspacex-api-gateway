@@ -58,6 +58,28 @@ interface RefreshTokenResponse {
   error: string;
 }
 
+interface RequestWeb3NonceResponse {
+  success: boolean;
+  nonce: string;
+  message: string;
+  error: string;
+}
+
+interface VerifyWeb3SignatureResponse {
+  success: boolean;
+  user: UserResponse;
+  error: string;
+  accessToken: string;
+  refreshToken: string;
+}
+
+interface LinkWeb3WalletResponse {
+  success: boolean;
+  message: string;
+  isPrimary: boolean;
+  error: string;
+}
+
 export {
   UserResponse,
   CreateUserResponse,
@@ -67,4 +89,7 @@ export {
   VerifyOTPResponse,
   ResendOTPResponse,
   RefreshTokenResponse,
+  RequestWeb3NonceResponse,
+  VerifyWeb3SignatureResponse,
+  LinkWeb3WalletResponse,
 };

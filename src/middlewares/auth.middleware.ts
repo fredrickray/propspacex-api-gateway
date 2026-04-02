@@ -145,10 +145,11 @@ export default class GatewayAuthMiddleware {
       next();
     } catch (error: any) {
       console.error("Authentication error:", error);
-      return res.status(500).json({
-        success: false,
-        message: "Authentication service unavailable",
-      });
+      next(error);
+      // return res.status(500).json({
+      //   success: false,
+      //   message: "Authentication service unavailable",
+      // });
     }
   }
 
