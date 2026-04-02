@@ -35,16 +35,6 @@ router.get(
 //  */
 // router.get("/featured", propertyController.getFeaturedProperties.bind(propertyController));
 
-/**
- * @route   GET /api/properties/owner/me
- * @desc    Get current user's properties
- * @access  Private
- */
-router.get(
-  "/owner/me",
-  authenticate,
-  propertyController.getMyProperties.bind(propertyController)
-);
 
 /**
  * @route   GET /api/properties/:id
@@ -63,51 +53,7 @@ router.get("/:id", propertyController.getProperty.bind(propertyController));
 
 // ==================== Protected Property Routes ====================
 
-/**
- * @route   POST /api/properties
- * @desc    Create a new property
- * @access  Private (Agent, Landlord, Admin)
- */
-router.post(
-  "/",
-  authenticate,
-  authorizeRoles("agent", "landlord", "admin"),
-  propertyUpload,
-  propertyController.createProperty.bind(propertyController)
-);
 
-/**
- * @route   PUT /api/properties/:id
- * @desc    Update a property
- * @access  Private (Owner, Admin)
- */
-router.put(
-  "/:id",
-  authenticate,
-  propertyController.updateProperty.bind(propertyController)
-);
-
-/**
- * @route   DELETE /api/properties/:id
- * @desc    Delete a property
- * @access  Private (Owner, Admin)
- */
-router.delete(
-  "/:id",
-  authenticate,
-  propertyController.deleteProperty.bind(propertyController)
-);
-
-/**
- * @route   PUT /api/properties/:id/status
- * @desc    Update property status
- * @access  Private (Owner, Admin)
- */
-router.put(
-  "/:id/status",
-  authenticate,
-  propertyController.updatePropertyStatus.bind(propertyController)
-);
 
 /**
  * @route   PUT /api/properties/:id/sold
