@@ -39,6 +39,7 @@ export default class PropertyController {
         bathrooms: bathrooms ? Number(bathrooms) : undefined,
         ownerId: ownerId as string,
         isActive: isActive !== undefined ? isActive === "true" : undefined,
+        filterByActive: isActive !== undefined ? true : undefined,
         search: search as string,
       };
 
@@ -436,13 +437,41 @@ export default class PropertyController {
   async getMyProperties(req: Request, res: Response) {
     try {
       const ownerId = req.user!.userId;
-      const { page = 1, limit = 10 } = req.query;
+      const {
+        page = 1,
+        limit = 10,
+        sort,
+        type,
+        status,
+        minPrice,
+        maxPrice,
+        city,
+        country,
+        bedrooms,
+        bathrooms,
+        isActive,
+        search,
+      } = req.query;
 
-      const response = await propertyService.getPropertiesByOwner({
-        ownerId,
+      const requestParams = {
         page: Number(page),
         limit: Number(limit),
-      });
+        sort: sort as string,
+        type: type as string,
+        status: status as string,
+        minPrice: minPrice ? Number(minPrice) : undefined,
+        maxPrice: maxPrice ? Number(maxPrice) : undefined,
+        city: city as string,
+        country: country as string,
+        bedrooms: bedrooms ? Number(bedrooms) : undefined,
+        bathrooms: bathrooms ? Number(bathrooms) : undefined,
+        ownerId: ownerId, // Hardcode ownerId to the authenticated user and ignore query payload ownerId.
+        isActive: isActive !== undefined ? isActive === "true" : undefined,
+        filterByActive: isActive !== undefined ? true : undefined,
+        search: search as string,
+      };
+
+      const response = await propertyService.getProperties(requestParams);
 
       res.status(200).json(response);
     } catch (error) {
