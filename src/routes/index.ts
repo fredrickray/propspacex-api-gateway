@@ -2,18 +2,17 @@ import { Router } from "express";
 import {
   authenticate,
   authorizeRoles,
-  requireTrustedDevice,
-  logActivity,
   attachRequestMetadata,
 } from "@middlewares/auth.middleware";
 import userRoutes from "./user.routes";
 import propertyRoutes from "./property.routes";
 import paymentRoutes from "./payment.routes";
+import walletRoutes from "./wallet.routes";
+import escrowRoutes from "./escrow.routes";
 import agentRoutes from "./agent.routes";
 
 const indexRouter = Router();
 
-// Health check endpoint
 indexRouter.get("/health", (req, res) => {
   res.status(200).json({
     success: true,
@@ -22,11 +21,12 @@ indexRouter.get("/health", (req, res) => {
   });
 });
 
-// Mount service routes
 indexRouter.use("/auth", attachRequestMetadata, userRoutes);
 indexRouter.use("/users", attachRequestMetadata, userRoutes);
 indexRouter.use("/agents", attachRequestMetadata, authenticate, authorizeRoles("agent"), agentRoutes);
 indexRouter.use("/properties", attachRequestMetadata, propertyRoutes);
 indexRouter.use("/payments", attachRequestMetadata, paymentRoutes);
+indexRouter.use("/wallets", attachRequestMetadata, walletRoutes);
+indexRouter.use("/escrows", attachRequestMetadata, escrowRoutes);
 
 export default indexRouter;

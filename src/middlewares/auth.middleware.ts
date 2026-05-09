@@ -18,6 +18,7 @@ declare global {
         isVerified: boolean;
         isAccountActive: boolean;
       };
+      rawBody?: string;
       deviceId?: string;
       ipAddress?: string;
       userAgent?: string;

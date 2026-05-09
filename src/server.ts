@@ -1,4 +1,4 @@
-import express, { Application } from "express";
+import express, { Application, Request } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import config from "@config/service.config";
@@ -29,7 +29,12 @@ export default class Server {
     this.app.set("trust proxy", 1);
     this.app.use(helmet());
     this.app.use(cors(corsConfig));
-    this.app.use(express.json({ limit: "10mb" }));
+    this.app.use(express.json({
+      limit: "10mb",
+      verify: (req, _res, buf) => {
+        (req as Request).rawBody = buf.toString("utf8");
+      },
+    }));
     this.app.use(express.urlencoded({ extended: true, limit: "10mb" }));
     this.app.use(requestLogger);
     this.app.use(rateLimit(100, 60000)); // 100 requests per minute

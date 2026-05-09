@@ -1,344 +1,296 @@
-import { Router, Request, Response } from "express";
+import { Request, Response, Router } from "express";
 import { paymentService } from "../grpc-clients";
-import { authenticate, authorizeRoles } from "@middlewares/auth.middleware";
+import { authenticate } from "@middlewares/auth.middleware";
 import { handleGrpcError } from "@utils/handleGrpcError";
 import logger from "@utils/logger";
+import {
+  bodyRecord,
+  optionalNonEmptyString,
+  ESCROW_PAYMENT_INTENT_PURPOSES,
+  queryRecord,
+  queryFirst,
+  requireIdempotencyKey,
+  requireNonEmptyString,
+  requirePositiveInt,
+  requireProvider,
+  requireReference,
+  requireIntIn,
+  CURRENCY_CODES,
+  sendValidationError,
+  type ValidationIssue,
+} from "@utils/paymentRequestValidation";
 
 const router = Router();
 
-// ==================== Payment Routes ====================
-
-/**
- * @route   POST /api/payments/initialize
- * @desc    Initialize a payment
- * @access  Private
- */
-router.post(
-  "/initialize",
-  authenticate,
-  async (req: Request, res: Response) => {
-    try {
-      const userId = req.user!.userId;
-      const {
-        propertyId,
-        type,
-        amount,
-        currency,
-        email,
-        gateway,
-        callbackUrl,
-        metadata,
-      } = req.body;
-
-      const response = await paymentService.initializePayment({
-        userId,
-        propertyId,
-        type,
-        amount,
-        currency,
-        email: email || req.user!.email,
-        gateway,
-        callbackUrl,
-        metadata: metadata ? JSON.stringify(metadata) : undefined,
-      });
-
-      logger.info({ userId, type, amount }, "Payment initialized");
-      res.status(200).json(response);
-    } catch (error) {
-      handleGrpcError(res, error, "Failed to initialize payment", "Payment");
-    }
+router.post("/intent", authenticate, async (req: Request, res: Response) => {
+  const issues: ValidationIssue[] = [];
+  const b = bodyRecord(req.body);
+  if (!b) {
+    sendValidationError(res, [{ field: "body", message: "JSON body is required" }]);
+    return;
   }
-);
 
-/**
- * @route   GET /api/payments/verify/:reference
- * @desc    Verify a payment
- * @access  Private
- */
-router.get(
-  "/verify/:reference",
-  authenticate,
-  async (req: Request, res: Response) => {
-    try {
-      const { reference } = req.params;
-      const { gateway } = req.query;
+  const idempotency_key = requireIdempotencyKey(issues, b.idempotency_key);
+  const provider = requireProvider(issues, b.provider);
+  const currency_code = requireIntIn(issues, "currency_code", b.currency_code, CURRENCY_CODES, "currency_code");
+  const amount_minor = requirePositiveInt(issues, "amount_minor", b.amount_minor);
+  const purpose = requireIntIn(
+    issues,
+    "purpose",
+    b.purpose,
+    ESCROW_PAYMENT_INTENT_PURPOSES,
+    "purpose"
+  );
 
-      const response = await paymentService.verifyPayment({
-        reference,
-        gateway: gateway as string,
-      });
-
-      logger.info({ reference }, "Payment verified");
-      res.status(200).json(response);
-    } catch (error) {
-      handleGrpcError(res, error, "Failed to verify payment", "Payment");
-    }
+  let buyer_user_id = optionalNonEmptyString(b.buyer_user_id);
+  if (!buyer_user_id) buyer_user_id = optionalNonEmptyString(req.user?.userId);
+  if (!buyer_user_id) {
+    issues.push({ field: "buyer_user_id", message: "buyer_user_id is required" });
   }
-);
 
-/**
- * @route   GET /api/payments/:id
- * @desc    Get payment by ID
- * @access  Private
- */
-router.get("/:id", authenticate, async (req: Request, res: Response) => {
+  let email = optionalNonEmptyString(b.email);
+  if (!email) email = optionalNonEmptyString(req.user?.email);
+  if (!email) {
+    issues.push({ field: "email", message: "email is required" });
+  }
+
+  const escrow_id = requireNonEmptyString(issues, "escrow_id", b.escrow_id, "escrow_id");
+
+  const callback_url = optionalNonEmptyString(b.callback_url);
+
+  if (issues.length) {
+    sendValidationError(res, issues);
+    return;
+  }
+
   try {
-    const { id } = req.params;
+    const buyerUserId = buyer_user_id as string;
+    const escrowId = escrow_id as string;
+    const providerName = provider as string;
+    const payerEmail = email as string;
+    const amountMinor = amount_minor as number;
+    const currencyCode = currency_code as number;
+    const idemKey = idempotency_key as string;
+    const paymentPurpose = purpose as number;
 
-    const response = await paymentService.getPayment({ paymentId: id });
-
-    res.status(200).json(response);
-  } catch (error) {
-    handleGrpcError(res, error, "Failed to get payment", "Payment");
-  }
-});
-
-/**
- * @route   GET /api/payments
- * @desc    Get user's payments
- * @access  Private
- */
-router.get("/", authenticate, async (req: Request, res: Response) => {
-  try {
-    const userId = req.user!.userId;
-    const { page = 1, limit = 10, status, type } = req.query;
-
-    const response = await paymentService.getUserPayments({
-      userId,
-      page: Number(page),
-      limit: Number(limit),
-      status: status as string,
-      type: type as string,
+    const response = await paymentService.createPaymentIntent({
+      buyer_user_id: buyerUserId,
+      escrow_id: escrowId,
+      amount_minor: amountMinor,
+      currency_code: currencyCode,
+      provider: providerName,
+      email: payerEmail,
+      callback_url,
+      idempotency_key: idemKey,
+      purpose: paymentPurpose,
     });
 
+    logger.info({ buyerUserId, escrowId }, "Payment intent created");
     res.status(200).json(response);
   } catch (error) {
-    handleGrpcError(res, error, "Failed to get payments", "Payment");
+    handleGrpcError(res, error, "Failed to create payment intent", "Payment");
   }
 });
 
-/**
- * @route   GET /api/payments/property/:propertyId
- * @desc    Get payments for a property
- * @access  Private (Owner, Admin)
- */
-router.get(
-  "/property/:propertyId",
-  authenticate,
-  async (req: Request, res: Response) => {
-    try {
-      const { propertyId } = req.params;
-      const { page = 1, limit = 10 } = req.query;
-
-      const response = await paymentService.getPropertyPayments({
-        propertyId,
-        page: Number(page),
-        limit: Number(limit),
-      });
-
-      res.status(200).json(response);
-    } catch (error) {
-      handleGrpcError(res, error, "Failed to get property payments", "Payment");
-    }
+router.post("/verify", authenticate, async (req: Request, res: Response) => {
+  const issues: ValidationIssue[] = [];
+  const b = bodyRecord(req.body);
+  if (!b) {
+    sendValidationError(res, [{ field: "body", message: "JSON body is required" }]);
+    return;
   }
-);
-
-// ==================== Subscription Routes ====================
-
-/**
- * @route   POST /api/payments/subscriptions
- * @desc    Create a subscription
- * @access  Private
- */
-router.post(
-  "/subscriptions",
-  authenticate,
-  async (req: Request, res: Response) => {
-    try {
-      const userId = req.user!.userId;
-      const { planId, email, gateway, callbackUrl } = req.body;
-
-      const response = await paymentService.createSubscription({
-        userId,
-        planId,
-        email: email || req.user!.email,
-        gateway,
-        callbackUrl,
-      });
-
-      logger.info({ userId, planId }, "Subscription created");
-      res.status(200).json(response);
-    } catch (error) {
-      handleGrpcError(res, error, "Failed to create subscription", "Payment");
-    }
+  const provider = requireProvider(issues, b.provider);
+  const reference = requireReference(issues, b.reference);
+  if (issues.length) {
+    sendValidationError(res, issues);
+    return;
   }
-);
 
-/**
- * @route   DELETE /api/payments/subscriptions/:id
- * @desc    Cancel a subscription
- * @access  Private
- */
-router.delete(
-  "/subscriptions/:id",
-  authenticate,
-  async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const userId = req.user!.userId;
-
-      const response = await paymentService.cancelSubscription({
-        subscriptionId: id,
-        userId,
-      });
-
-      logger.info({ subscriptionId: id, userId }, "Subscription cancelled");
-      res.status(200).json(response);
-    } catch (error) {
-      handleGrpcError(res, error, "Failed to cancel subscription", "Payment");
-    }
-  }
-);
-
-/**
- * @route   GET /api/payments/subscriptions
- * @desc    Get user's subscriptions
- * @access  Private
- */
-router.get(
-  "/subscriptions",
-  authenticate,
-  async (req: Request, res: Response) => {
-    try {
-      const userId = req.user!.userId;
-      const { page = 1, limit = 10 } = req.query;
-
-      const response = await paymentService.getUserSubscriptions({
-        userId,
-        page: Number(page),
-        limit: Number(limit),
-      });
-
-      res.status(200).json(response);
-    } catch (error) {
-      handleGrpcError(res, error, "Failed to get subscriptions", "Payment");
-    }
-  }
-);
-
-// ==================== Refund Routes ====================
-
-/**
- * @route   POST /api/payments/:id/refund
- * @desc    Request a refund
- * @access  Private
- */
-router.post(
-  "/:id/refund",
-  authenticate,
-  async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const userId = req.user!.userId;
-      const { reason } = req.body;
-
-      const response = await paymentService.requestRefund({
-        paymentId: id,
-        userId,
-        reason,
-      });
-
-      logger.info({ paymentId: id, userId }, "Refund requested");
-      res.status(200).json(response);
-    } catch (error) {
-      handleGrpcError(res, error, "Failed to request refund", "Payment");
-    }
-  }
-);
-
-/**
- * @route   PUT /api/payments/refunds/:id/process
- * @desc    Process a refund (admin only)
- * @access  Private/Admin
- */
-router.put(
-  "/refunds/:id/process",
-  authenticate,
-  authorizeRoles("admin"),
-  async (req: Request, res: Response) => {
-    try {
-      const { id } = req.params;
-      const { approve, adminNote } = req.body;
-
-      const response = await paymentService.processRefund({
-        refundId: id,
-        approve,
-        adminNote,
-      });
-
-      logger.info({ refundId: id, approve }, "Refund processed by admin");
-      res.status(200).json(response);
-    } catch (error) {
-      handleGrpcError(res, error, "Failed to process refund", "Payment");
-    }
-  }
-);
-
-// ==================== Transaction History ====================
-
-/**
- * @route   GET /api/payments/transactions
- * @desc    Get transaction history
- * @access  Private
- */
-router.get(
-  "/transactions",
-  authenticate,
-  async (req: Request, res: Response) => {
-    try {
-      const userId = req.user!.userId;
-      const { page = 1, limit = 10, type, startDate, endDate } = req.query;
-
-      const response = await paymentService.getTransactionHistory({
-        userId,
-        page: Number(page),
-        limit: Number(limit),
-        type: type as string,
-        startDate: startDate as string,
-        endDate: endDate as string,
-      });
-
-      res.status(200).json(response);
-    } catch (error) {
-      handleGrpcError(res, error, "Failed to get transactions", "Payment");
-    }
-  }
-);
-
-// ==================== Webhook Route ====================
-
-/**
- * @route   POST /api/payments/webhook/:gateway
- * @desc    Handle payment webhook
- * @access  Public (verified by signature)
- */
-router.post("/webhook/:gateway", async (req: Request, res: Response) => {
   try {
-    const { gateway } = req.params;
-    const signature =
-      req.headers["x-paystack-signature"] ||
+    const providerName = provider as string;
+    const paymentRef = reference as string;
+    const response = await paymentService.verifyPaymentByReference({
+      provider: providerName,
+      reference: paymentRef,
+    });
+
+    logger.info({ reference: paymentRef }, "Payment verified");
+    res.status(200).json(response);
+  } catch (error) {
+    handleGrpcError(res, error, "Failed to verify payment", "Payment");
+  }
+});
+
+router.get("/verify/:reference", authenticate, async (req: Request, res: Response) => {
+  const issues: ValidationIssue[] = [];
+  const q = queryRecord(req.query);
+  const provider = requireProvider(issues, queryFirst(q, "provider") ?? queryFirst(q, "gateway"), "provider");
+  const reference = requireReference(issues, req.params.reference);
+  if (issues.length) {
+    sendValidationError(res, issues);
+    return;
+  }
+
+  try {
+    const providerName = provider as string;
+    const paymentRef = reference as string;
+    const response = await paymentService.verifyPaymentByReference({
+      provider: providerName,
+      reference: paymentRef,
+    });
+
+    logger.info({ reference: paymentRef }, "Payment verified");
+    res.status(200).json(response);
+  } catch (error) {
+    handleGrpcError(res, error, "Failed to verify payment", "Payment");
+  }
+});
+
+router.post("/wallet-topup/intent", authenticate, async (req: Request, res: Response) => {
+  const issues: ValidationIssue[] = [];
+  const b = bodyRecord(req.body);
+  if (!b) {
+    sendValidationError(res, [{ field: "body", message: "JSON body is required" }]);
+    return;
+  }
+
+  const idempotency_key = requireIdempotencyKey(issues, b.idempotency_key);
+  const provider = requireProvider(issues, b.provider);
+  const currency_code = requireIntIn(issues, "currency_code", b.currency_code, CURRENCY_CODES, "currency_code");
+  const amount_minor = requirePositiveInt(issues, "amount_minor", b.amount_minor);
+  let user_id = optionalNonEmptyString(b.user_id);
+  if (!user_id) user_id = optionalNonEmptyString(req.user?.userId);
+  if (!user_id) {
+    issues.push({ field: "user_id", message: "user_id is required" });
+  }
+
+  let email = optionalNonEmptyString(b.email);
+  if (!email) email = optionalNonEmptyString(req.user?.email);
+  if (!email) {
+    issues.push({ field: "email", message: "email is required" });
+  }
+  const callback_url = optionalNonEmptyString(b.callback_url);
+
+  if (issues.length) {
+    sendValidationError(res, issues);
+    return;
+  }
+
+  try {
+    const topupUserId = user_id as string;
+    const amountMinor = amount_minor as number;
+    const currencyCode = currency_code as number;
+    const providerName = provider as string;
+    const userEmail = email as string;
+    const idemKey = idempotency_key as string;
+
+    const response = await paymentService.createWalletTopupIntent({
+      user_id: topupUserId,
+      amount_minor: amountMinor,
+      currency_code: currencyCode,
+      provider: providerName,
+      email: userEmail,
+      callback_url,
+      idempotency_key: idemKey,
+    });
+
+    logger.info({ userId: topupUserId, amountMinor }, "Wallet topup intent created");
+    res.status(200).json(response);
+  } catch (error) {
+    handleGrpcError(res, error, "Failed to create wallet topup intent", "Payment");
+  }
+});
+
+router.post("/wallet-topup/verify", authenticate, async (req: Request, res: Response) => {
+  const issues: ValidationIssue[] = [];
+  const b = bodyRecord(req.body);
+  if (!b) {
+    sendValidationError(res, [{ field: "body", message: "JSON body is required" }]);
+    return;
+  }
+  const provider = requireProvider(issues, b.provider);
+  const reference = requireReference(issues, b.reference);
+  if (issues.length) {
+    sendValidationError(res, issues);
+    return;
+  }
+
+  try {
+    const providerName = provider as string;
+    const paymentRef = reference as string;
+    const response = await paymentService.verifyWalletTopup({
+      provider: providerName,
+      reference: paymentRef,
+    });
+
+    logger.info({ reference: paymentRef }, "Wallet topup verified");
+    res.status(200).json(response);
+  } catch (error) {
+    handleGrpcError(res, error, "Failed to verify wallet topup", "Payment");
+  }
+});
+
+router.get("/wallet-topup/verify/:reference", authenticate, async (req: Request, res: Response) => {
+  const issues: ValidationIssue[] = [];
+  const q = queryRecord(req.query);
+  const provider = requireProvider(issues, queryFirst(q, "provider") ?? queryFirst(q, "gateway"), "provider");
+  const reference = requireReference(issues, req.params.reference);
+  if (issues.length) {
+    sendValidationError(res, issues);
+    return;
+  }
+
+  try {
+    const providerName = provider as string;
+    const paymentRef = reference as string;
+    const response = await paymentService.verifyWalletTopup({
+      provider: providerName,
+      reference: paymentRef,
+    });
+
+    logger.info({ reference: paymentRef }, "Wallet topup verified");
+    res.status(200).json(response);
+  } catch (error) {
+    handleGrpcError(res, error, "Failed to verify wallet topup", "Payment");
+  }
+});
+
+router.post("/webhook/:provider", async (req: Request, res: Response) => {
+  const issues: ValidationIssue[] = [];
+  const provider = requireProvider(issues, req.params.provider, "provider");
+  const signature =
+    (req.headers["x-paystack-signature"] ||
       req.headers["verif-hash"] ||
       req.headers["stripe-signature"] ||
-      "";
+      "") + "";
+  if (!String(signature).trim()) {
+    issues.push({ field: "signature", message: "Webhook signature header is required" });
+  }
+  const rawBody = req.rawBody;
+  const payload_json = typeof rawBody === "string" ? rawBody : "";
+  if (!payload_json) {
+    issues.push({
+      field: "payload",
+      message: "Raw webhook body is required; ensure application/json body parsing captured rawBody",
+    });
+  }
+  if (issues.length) {
+    sendValidationError(res, issues);
+    return;
+  }
 
-    const response = await paymentService.handleWebhook({
-      gateway,
-      event: req.body.event,
-      payload: JSON.stringify(req.body),
-      signature: signature as string,
+  try {
+    const body = bodyRecord(req.body);
+    const event = body ? optionalNonEmptyString(body.event) ?? "" : "";
+
+    const response = await paymentService.handleProviderWebhook({
+      provider: provider as string,
+      signature: String(signature),
+      event,
+      payload_json,
     });
 
-    logger.info({ gateway, event: req.body.event }, "Webhook processed");
+    logger.info({ provider, event }, "Provider webhook processed");
     res.status(200).json(response);
   } catch (error) {
     handleGrpcError(res, error, "Failed to process webhook", "Payment");
