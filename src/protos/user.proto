@@ -21,6 +21,11 @@ service UserService {
   rpc RegisterDevice (RegisterDeviceRequest) returns (RegisterDeviceResponse);
   rpc LogActivity (LogActivityRequest) returns (LogActivityResponse);
   rpc CheckDeviceTrust (CheckDeviceTrustRequest) returns (CheckDeviceTrustResponse);
+  rpc CreateOrGetDeal (CreateOrGetDealRequest) returns (DealResponse);
+  rpc ListDeals (ListDealsRequest) returns (ListDealsResponse);
+  rpc GetDeal (GetDealRequest) returns (DealResponse);
+  rpc QuoteDeal (QuoteDealRequest) returns (DealResponse);
+  rpc AcceptDealQuote (AcceptDealQuoteRequest) returns (DealResponse);
 }
 
 message CreateUserRequest {
@@ -198,4 +203,68 @@ message CheckDeviceTrustRequest {
 
 message CheckDeviceTrustResponse {
   bool isTrusted = 1;
+}
+
+message Deal {
+  string dealId = 1;
+  string conversationId = 2;
+  string propertyId = 3;
+  string propertyTitle = 4;
+  string buyerId = 5;
+  string buyerName = 6;
+  string agentId = 7;
+  string agentName = 8;
+  string status = 9;
+  int64 quotedAmountMinor = 10;
+  int64 platformFeeMinor = 11;
+  string quoteNote = 12;
+  string escrowId = 13;
+  string createdAt = 14;
+  string updatedAt = 15;
+  string quotedAt = 16;
+  string acceptedAt = 17;
+}
+
+message CreateOrGetDealRequest {
+  string conversationId = 1;
+  string userId = 2;
+  string propertyTitle = 3;
+}
+
+message ListDealsRequest {
+  string userId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message GetDealRequest {
+  string dealId = 1;
+  string userId = 2;
+}
+
+message QuoteDealRequest {
+  string dealId = 1;
+  string agentId = 2;
+  int64 amountMinor = 3;
+  int64 platformFeeMinor = 4;
+  string quoteNote = 5;
+}
+
+message AcceptDealQuoteRequest {
+  string dealId = 1;
+  string buyerId = 2;
+  string idempotencyKey = 3;
+}
+
+message DealResponse {
+  bool success = 1;
+  Deal deal = 2;
+  string error = 3;
+}
+
+message ListDealsResponse {
+  repeated Deal deals = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
 }

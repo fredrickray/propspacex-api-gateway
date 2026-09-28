@@ -1,6 +1,7 @@
 import { Request, Response, Router } from "express";
-import { escrowService } from "../grpc-clients";
+import { escrowService, userService } from "../grpc-clients";
 import { authenticate, authorizeRoles } from "@middlewares/auth.middleware";
+import config from "@config/service.config";
 import { handleGrpcError } from "@utils/handleGrpcError";
 import {
   ACTOR_ROLES,
@@ -25,6 +26,54 @@ import {
 
 const router = Router();
 
+const roleFromAppRole = (appRole?: string): number => {
+  if (appRole === "agent") return 2;
+  if (appRole === "admin") return 3;
+  return 1;
+};
+
+const parseEscrowMetadata = (metadata?: string) => {
+  if (!metadata) return {};
+  try {
+    return JSON.parse(metadata) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+};
+
+const enrichEscrow = async (escrow: any, userId: string) => {
+  if (!config.featureFlags.escrowCompatEnrichmentEnabled) {
+    return escrow;
+  }
+  const metadata = parseEscrowMetadata(escrow.metadata_json || escrow.metadataJson);
+  let deal: any = null;
+  if (escrow.deal_ref || escrow.dealRef) {
+    try {
+      deal = await userService.getDeal({
+        dealId: String(escrow.deal_ref || escrow.dealRef),
+        userId,
+      });
+    } catch {
+      deal = null;
+    }
+  }
+
+  const dealData = deal?.deal || {};
+  return {
+    ...escrow,
+    conversationId:
+      dealData.conversationId ||
+      (metadata.conversationId as string) ||
+      "",
+    propertyTitle:
+      dealData.propertyTitle ||
+      (metadata.propertyTitle as string) ||
+      "",
+    buyerName: dealData.buyerName || "",
+    agentName: dealData.agentName || "",
+  };
+};
+
 function parseHoldFundsNow(value: unknown): boolean {
   if (value === true || value === 1 || value === "1" || value === "true") return true;
   if (value === false || value === 0 || value === "0" || value === "false") return false;
@@ -35,12 +84,11 @@ router.get("/", authenticate, async (req: Request, res: Response) => {
   const issues: ValidationIssue[] = [];
   const q = queryRecord(req.query);
   const pagination = paginationFromQuery(issues, q);
-  let user_id = queryString(q, "user_id");
-  if (!user_id) user_id = optionalNonEmptyString(req.user?.userId);
+  const user_id = optionalNonEmptyString(req.user?.userId);
   if (!user_id) {
     issues.push({ field: "user_id", message: "user_id is required (query or inferred from session)" });
   }
-  const role = optionalIntIn(issues, "role", queryFirst(q, "role"), ACTOR_ROLES, "role");
+  const role = roleFromAppRole(req.user?.appRole);
   const status = optionalIntIn(issues, "status", queryFirst(q, "status"), ESCROW_STATUSES, "escrow status");
   if (!pagination || issues.length) {
     sendValidationError(res, issues);
@@ -54,8 +102,13 @@ router.get("/", authenticate, async (req: Request, res: Response) => {
       status,
       pagination,
     });
+    const escrows = await Promise.all(
+      (response as any).escrows.map((escrow: any) =>
+        enrichEscrow(escrow, user_id as string)
+      )
+    );
 
-    res.status(200).json(response);
+    res.status(200).json({ ...(response as any), escrows });
   } catch (error) {
     handleGrpcError(res, error, "Failed to list escrows", "Escrow");
   }
@@ -71,7 +124,11 @@ router.get("/deal/:dealRef", authenticate, async (req: Request, res: Response) =
 
   try {
     const response = await escrowService.getEscrowByDealRef({ deal_ref: deal_ref as string });
-    res.status(200).json(response);
+    const userId = optionalNonEmptyString(req.user?.userId) as string;
+    const escrow = (response as any).escrow
+      ? await enrichEscrow((response as any).escrow, userId)
+      : null;
+    res.status(200).json({ ...(response as any), escrow });
   } catch (error) {
     handleGrpcError(res, error, "Failed to fetch escrow by deal ref", "Escrow");
   }
@@ -86,7 +143,16 @@ router.post("/", authenticate, async (req: Request, res: Response) => {
   }
 
   const deal_ref = requireNonEmptyString(issues, "deal_ref", b.deal_ref, "deal_ref");
-  const buyer_user_id = requireNonEmptyString(issues, "buyer_user_id", b.buyer_user_id, "buyer_user_id");
+  const buyer_user_id = optionalNonEmptyString(req.user?.userId);
+  if (!buyer_user_id) {
+    issues.push({ field: "buyer_user_id", message: "Authenticated buyer session is required" });
+  }
+  if (optionalNonEmptyString(b.buyer_user_id) && b.buyer_user_id !== buyer_user_id) {
+    issues.push({
+      field: "buyer_user_id",
+      message: "buyer_user_id must match the authenticated user",
+    });
+  }
   const agent_user_id = requireNonEmptyString(issues, "agent_user_id", b.agent_user_id, "agent_user_id");
   const property_id = requireNonEmptyString(issues, "property_id", b.property_id, "property_id");
   const currency_code = requireIntIn(issues, "currency_code", b.currency_code, CURRENCY_CODES, "currency_code");
@@ -146,8 +212,13 @@ router.post("/:escrowId/mark-complete", authenticate, async (req: Request, res: 
   }
   const escrow_id = requireNonEmptyString(issues, "escrowId", req.params.escrowId, "escrow_id");
   const idempotency_key = requireIdempotencyKey(issues, b.idempotency_key);
-  let agent_user_id = optionalNonEmptyString(b.agent_user_id);
-  if (!agent_user_id) agent_user_id = optionalNonEmptyString(req.user?.userId);
+  let agent_user_id = optionalNonEmptyString(req.user?.userId);
+  if (optionalNonEmptyString(b.agent_user_id) && b.agent_user_id !== agent_user_id) {
+    issues.push({
+      field: "agent_user_id",
+      message: "agent_user_id must match the authenticated user",
+    });
+  }
   if (!agent_user_id) {
     issues.push({ field: "agent_user_id", message: "agent_user_id is required" });
   }
@@ -180,8 +251,13 @@ router.post("/:escrowId/release", authenticate, async (req: Request, res: Respon
   }
   const escrow_id = requireNonEmptyString(issues, "escrowId", req.params.escrowId, "escrow_id");
   const idempotency_key = requireIdempotencyKey(issues, b.idempotency_key);
-  let buyer_user_id = optionalNonEmptyString(b.buyer_user_id);
-  if (!buyer_user_id) buyer_user_id = optionalNonEmptyString(req.user?.userId);
+  let buyer_user_id = optionalNonEmptyString(req.user?.userId);
+  if (optionalNonEmptyString(b.buyer_user_id) && b.buyer_user_id !== buyer_user_id) {
+    issues.push({
+      field: "buyer_user_id",
+      message: "buyer_user_id must match the authenticated user",
+    });
+  }
   if (!buyer_user_id) {
     issues.push({ field: "buyer_user_id", message: "buyer_user_id is required" });
   }
@@ -214,10 +290,15 @@ router.post("/:escrowId/cancel", authenticate, async (req: Request, res: Respons
   }
   const escrow_id = requireNonEmptyString(issues, "escrowId", req.params.escrowId, "escrow_id");
   const idempotency_key = requireIdempotencyKey(issues, b.idempotency_key);
-  const cancelled_by_role = requireIntIn(issues, "cancelled_by_role", b.cancelled_by_role, ACTOR_ROLES, "cancelled_by_role");
+  const cancelled_by_role = roleFromAppRole(req.user?.appRole);
   const reason = requireNonEmptyString(issues, "reason", b.reason, "reason");
-  let cancelled_by_user_id = optionalNonEmptyString(b.cancelled_by_user_id);
-  if (!cancelled_by_user_id) cancelled_by_user_id = optionalNonEmptyString(req.user?.userId);
+  let cancelled_by_user_id = optionalNonEmptyString(req.user?.userId);
+  if (optionalNonEmptyString(b.cancelled_by_user_id) && b.cancelled_by_user_id !== cancelled_by_user_id) {
+    issues.push({
+      field: "cancelled_by_user_id",
+      message: "cancelled_by_user_id must match the authenticated user",
+    });
+  }
   if (!cancelled_by_user_id) {
     issues.push({ field: "cancelled_by_user_id", message: "cancelled_by_user_id is required" });
   }
@@ -250,10 +331,15 @@ router.post("/:escrowId/disputes", authenticate, async (req: Request, res: Respo
   }
   const escrow_id = requireNonEmptyString(issues, "escrowId", req.params.escrowId, "escrow_id");
   const idempotency_key = requireIdempotencyKey(issues, b.idempotency_key);
-  const opened_by_role = requireIntIn(issues, "opened_by_role", b.opened_by_role, ACTOR_ROLES, "opened_by_role");
+  const opened_by_role = roleFromAppRole(req.user?.appRole);
   const reason = requireNonEmptyString(issues, "reason", b.reason, "reason");
-  let opened_by_user_id = optionalNonEmptyString(b.opened_by_user_id);
-  if (!opened_by_user_id) opened_by_user_id = optionalNonEmptyString(req.user?.userId);
+  let opened_by_user_id = optionalNonEmptyString(req.user?.userId);
+  if (optionalNonEmptyString(b.opened_by_user_id) && b.opened_by_user_id !== opened_by_user_id) {
+    issues.push({
+      field: "opened_by_user_id",
+      message: "opened_by_user_id must match the authenticated user",
+    });
+  }
   if (!opened_by_user_id) {
     issues.push({ field: "opened_by_user_id", message: "opened_by_user_id is required" });
   }
@@ -335,7 +421,11 @@ router.get("/:escrowId", authenticate, async (req: Request, res: Response) => {
 
   try {
     const response = await escrowService.getEscrowById({ escrow_id: escrow_id as string });
-    res.status(200).json(response);
+    const userId = optionalNonEmptyString(req.user?.userId) as string;
+    const escrow = (response as any).escrow
+      ? await enrichEscrow((response as any).escrow, userId)
+      : null;
+    res.status(200).json({ ...(response as any), escrow });
   } catch (error) {
     handleGrpcError(res, error, "Failed to fetch escrow", "Escrow");
   }

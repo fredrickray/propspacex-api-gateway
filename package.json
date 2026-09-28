@@ -11,7 +11,8 @@
     "build": "npm run clean && npm run build:only && npm run copy:protos",
     "prestart": "npm run build",
     "start": "node -r tsconfig-paths/register dist/index.js",
-    "dev": "nodemon --watch src --ext ts,json,proto --exec tsx src/index.ts"
+    "dev": "nodemon --watch src --ext ts,json,proto --exec tsx src/index.ts",
+    "test:deals-smoke": "./scripts/deals-smoke-test.sh"
   },
   "repository": {
     "type": "git",

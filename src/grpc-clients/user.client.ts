@@ -232,6 +232,37 @@ export interface RefreshTokenResponse {
   error: string;
 }
 
+export interface DealResponse {
+  success: boolean;
+  deal?: {
+    dealId: string;
+    conversationId: string;
+    propertyId: string;
+    propertyTitle: string;
+    buyerId: string;
+    buyerName: string;
+    agentId: string;
+    agentName: string;
+    status: string;
+    quotedAmountMinor: number;
+    platformFeeMinor: number;
+    quoteNote: string;
+    escrowId: string;
+    createdAt: string;
+    updatedAt: string;
+    quotedAt: string;
+    acceptedAt: string;
+  };
+  error: string;
+}
+
+export interface ListDealsResponse {
+  deals: DealResponse["deal"][];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export class UserServiceClient {
   private client: any;
   private connected: boolean = false;
@@ -361,6 +392,44 @@ export class UserServiceClient {
     params: RefreshTokenRequest
   ): Promise<RefreshTokenResponse> {
     return this.promisify<RefreshTokenResponse>("RefreshToken", params);
+  }
+
+  async createOrGetDeal(params: {
+    conversationId: string;
+    userId: string;
+    propertyTitle?: string;
+  }): Promise<DealResponse> {
+    return this.promisify<DealResponse>("CreateOrGetDeal", params);
+  }
+
+  async listDeals(params: {
+    userId: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ListDealsResponse> {
+    return this.promisify<ListDealsResponse>("ListDeals", params);
+  }
+
+  async getDeal(params: { dealId: string; userId: string }): Promise<DealResponse> {
+    return this.promisify<DealResponse>("GetDeal", params);
+  }
+
+  async quoteDeal(params: {
+    dealId: string;
+    agentId: string;
+    amountMinor: number;
+    platformFeeMinor: number;
+    quoteNote?: string;
+  }): Promise<DealResponse> {
+    return this.promisify<DealResponse>("QuoteDeal", params);
+  }
+
+  async acceptDealQuote(params: {
+    dealId: string;
+    buyerId: string;
+    idempotencyKey: string;
+  }): Promise<DealResponse> {
+    return this.promisify<DealResponse>("AcceptDealQuote", params);
   }
 
   close(): void {

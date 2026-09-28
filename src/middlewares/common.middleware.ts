@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import config from "@config/service.config";
 import logger from "@utils/logger";
 
 /**
@@ -89,16 +90,7 @@ export const corsConfig = {
     // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
 
-    const allowedOrigins = [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "http://localhost:3002",
-      "http://localhost:3003",
-      "http://localhost:5173",
-      // Add production domains here
-    ];
-
-    if (allowedOrigins.includes(origin)) {
+    if (config.allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       logger.warn({ origin }, "CORS blocked request from origin");

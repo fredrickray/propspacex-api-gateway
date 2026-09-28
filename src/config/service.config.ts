@@ -33,6 +33,16 @@ const config = {
   serverEnvironment: process.env.ENV,
   serverPort: process.env.SERVER_PORT as unknown as number,
   company: process.env.COMPANY_NAME as string,
+  allowedOrigins: (process.env.ALLOWED_ORIGINS ||
+    "http://localhost:3000,http://localhost:3001,http://localhost:3002,http://localhost:3003,http://localhost:5173")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+  featureFlags: {
+    dealsApiEnabled: process.env.DEALS_API_ENABLED !== "false",
+    escrowCompatEnrichmentEnabled:
+      process.env.ESCROW_COMPAT_ENRICHMENT_ENABLED !== "false",
+  },
 };
 
 export default config;

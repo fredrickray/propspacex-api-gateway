@@ -42,8 +42,13 @@ router.post("/intent", authenticate, async (req: Request, res: Response) => {
     "purpose"
   );
 
-  let buyer_user_id = optionalNonEmptyString(b.buyer_user_id);
-  if (!buyer_user_id) buyer_user_id = optionalNonEmptyString(req.user?.userId);
+  let buyer_user_id = optionalNonEmptyString(req.user?.userId);
+  if (optionalNonEmptyString(b.buyer_user_id) && b.buyer_user_id !== buyer_user_id) {
+    issues.push({
+      field: "buyer_user_id",
+      message: "buyer_user_id must match the authenticated user",
+    });
+  }
   if (!buyer_user_id) {
     issues.push({ field: "buyer_user_id", message: "buyer_user_id is required" });
   }
@@ -158,8 +163,13 @@ router.post("/wallet-topup/intent", authenticate, async (req: Request, res: Resp
   const provider = requireProvider(issues, b.provider);
   const currency_code = requireIntIn(issues, "currency_code", b.currency_code, CURRENCY_CODES, "currency_code");
   const amount_minor = requirePositiveInt(issues, "amount_minor", b.amount_minor);
-  let user_id = optionalNonEmptyString(b.user_id);
-  if (!user_id) user_id = optionalNonEmptyString(req.user?.userId);
+  let user_id = optionalNonEmptyString(req.user?.userId);
+  if (optionalNonEmptyString(b.user_id) && b.user_id !== user_id) {
+    issues.push({
+      field: "user_id",
+      message: "user_id must match the authenticated user",
+    });
+  }
   if (!user_id) {
     issues.push({ field: "user_id", message: "user_id is required" });
   }
