@@ -23,6 +23,7 @@ export default class PropertyController {
         ownerId,
         isActive,
         search,
+        flagged,
       } = req.query;
 
       const requestParams = {
@@ -41,6 +42,13 @@ export default class PropertyController {
         isActive: isActive !== undefined ? isActive === "true" : undefined,
         filterByActive: isActive !== undefined ? true : undefined,
         search: search as string,
+        callerRole: req.user?.appRole,
+        ...(flagged !== undefined
+          ? {
+              flagged: flagged === "true",
+              filterByFlagged: true,
+            }
+          : {}),
       };
 
       logger.info({ requestParams }, "ListProperties request params");
@@ -469,6 +477,8 @@ export default class PropertyController {
         isActive: isActive !== undefined ? isActive === "true" : undefined,
         filterByActive: isActive !== undefined ? true : undefined,
         search: search as string,
+        callerRole: req.user?.appRole,
+        includeInactive: true,
       };
 
       const response = await propertyService.getProperties(requestParams);
@@ -476,6 +486,50 @@ export default class PropertyController {
       res.status(200).json(response);
     } catch (error) {
       handleGrpcError(res, error, "Failed to get your properties", "Property");
+    }
+  }
+
+  async approveProperty(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const response = await propertyService.approveProperty({
+        propertyId: id,
+        adminId: req.user!.userId,
+      });
+
+      res.status(200).json(response);
+    } catch (error) {
+      handleGrpcError(res, error, "Failed to approve listing", "Property");
+    }
+  }
+
+  async rejectProperty(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const response = await propertyService.rejectProperty({
+        propertyId: id,
+        adminId: req.user!.userId,
+        reason: req.body?.reason,
+      });
+
+      res.status(200).json(response);
+    } catch (error) {
+      handleGrpcError(res, error, "Failed to reject listing", "Property");
+    }
+  }
+
+  async escalateProperty(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const response = await propertyService.escalateProperty({
+        propertyId: id,
+        adminId: req.user!.userId,
+        note: req.body?.note,
+      });
+
+      res.status(200).json(response);
+    } catch (error) {
+      handleGrpcError(res, error, "Failed to escalate listing", "Property");
     }
   }
 
