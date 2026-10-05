@@ -449,12 +449,17 @@ export default class UserController {
         search: (search as string) || "",
       })) as ListUsersResponse;
 
+      const currentPage = Number(response.page) || Number(page);
+      const currentLimit = Number(response.limit) || Number(limit);
+      const total = Number(response.total) || 0;
+
       res.status(200).json({
         success: true,
         users: response.users,
-        total: response.total,
-        page: response.page,
-        limit: response.limit,
+        total,
+        page: currentPage,
+        limit: currentLimit,
+        hasNextPage: currentPage * currentLimit < total,
       });
     } catch (error) {
       handleGrpcError(res, error, "Failed to list users", "User");
