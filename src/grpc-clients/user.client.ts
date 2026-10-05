@@ -389,6 +389,27 @@ export class UserServiceClient {
     });
   }
 
+  async listVerifications(params: { page?: number; limit?: number } = {}) {
+    return this.promisify<{
+      verifications: Array<{
+        id: string;
+        kind: string;
+        status: string;
+        title: string;
+        detail: string;
+        userId: string;
+        email: string;
+        createdAt: string;
+      }>;
+      total: number;
+      page: number;
+      limit: number;
+    }>("ListVerifications", {
+      page: params.page || 1,
+      limit: params.limit || 20,
+    });
+  }
+
   async updateUser(params: UpdateUserRequest): Promise<UpdateUserResponse> {
     return this.promisify<UpdateUserResponse>("UpdateUser", params);
   }

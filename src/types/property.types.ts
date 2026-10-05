@@ -55,6 +55,7 @@ export interface Property {
   description: string;
   type: string;
   status: string;
+  purpose?: string;
   price: number;
   currency: string;
   location: PropertyLocation;
@@ -104,6 +105,7 @@ export interface CreatePropertyRequest {
   amenities?: PropertyAmenities[];
   media?: PropertyMedia;
   ownerId: string;
+  purpose?: string;
 }
 
 export interface GetPropertyRequest {
@@ -124,6 +126,7 @@ export interface UpdatePropertyRequest {
   size?: PropertySize;
   amenities?: PropertyAmenities[];
   media?: PropertyMedia;
+  purpose?: string;
 }
 
 export interface DeletePropertyRequest {
@@ -151,6 +154,28 @@ export interface ListPropertiesRequest {
   filterByFlagged?: boolean;
   callerRole?: string;
   includeInactive?: boolean;
+  purpose?: string;
+}
+
+export interface PendingDocumentReview {
+  id: string;
+  propertyId: string;
+  documentType: string;
+  createdAt: string;
+}
+
+export interface ListPendingDocumentReviewsRequest {
+  page?: number;
+  limit?: number;
+}
+
+export interface ListPendingDocumentReviewsResponse {
+  success: boolean;
+  message: string;
+  reviews: PendingDocumentReview[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 export interface GetPropertiesByOwnerRequest {
