@@ -15,7 +15,11 @@ const propertyController = new PropertyController();
  * @desc    Get all properties with filters
  * @access  Public
  */
-router.get("/", propertyController.getProperties.bind(propertyController));
+router.get(
+  "/",
+  optionalAuth,
+  propertyController.getProperties.bind(propertyController)
+);
 
 /**
  * @route   GET /api/properties/search

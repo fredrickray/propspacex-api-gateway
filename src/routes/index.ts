@@ -12,6 +12,7 @@ import walletRoutes from "./wallet.routes";
 import escrowRoutes from "./escrow.routes";
 import agentRoutes from "./agent.routes";
 import dealRoutes from "./deal.routes";
+import adminPropertyRoutes from "./admin.routes";
 
 const indexRouter = Router();
 
@@ -27,6 +28,13 @@ indexRouter.use("/auth", attachRequestMetadata, userRoutes);
 indexRouter.use("/users", attachRequestMetadata, userRoutes);
 indexRouter.use("/agents", attachRequestMetadata, authenticate, authorizeRoles("agent"), agentRoutes);
 indexRouter.use("/properties", attachRequestMetadata, propertyRoutes);
+indexRouter.use(
+  "/admin/properties",
+  attachRequestMetadata,
+  authenticate,
+  authorizeRoles("admin"),
+  adminPropertyRoutes
+);
 indexRouter.use("/payments", attachRequestMetadata, paymentRoutes);
 indexRouter.use("/wallets", attachRequestMetadata, walletRoutes);
 indexRouter.use("/escrows", attachRequestMetadata, escrowRoutes);

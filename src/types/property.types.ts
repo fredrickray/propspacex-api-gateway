@@ -67,6 +67,11 @@ export interface Property {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  flagged?: boolean;
+  flagNote?: string;
+  rejectionReason?: string;
+  moderatedBy?: string;
+  moderatedAt?: string;
 }
 
 export interface Owner {
@@ -142,6 +147,10 @@ export interface ListPropertiesRequest {
   isActive?: boolean;
   search?: string;
   filterByActive?: boolean;
+  flagged?: boolean;
+  filterByFlagged?: boolean;
+  callerRole?: string;
+  includeInactive?: boolean;
 }
 
 export interface GetPropertiesByOwnerRequest {
@@ -169,6 +178,23 @@ export interface UpdatePropertyStatusRequest {
   propertyId: string;
   userId?: string;
   status: string;
+}
+
+export interface ApprovePropertyRequest {
+  propertyId: string;
+  adminId: string;
+}
+
+export interface RejectPropertyRequest {
+  propertyId: string;
+  adminId: string;
+  reason: string;
+}
+
+export interface EscalatePropertyRequest {
+  propertyId: string;
+  adminId: string;
+  note: string;
 }
 
 export interface UpdateMediaRequest {

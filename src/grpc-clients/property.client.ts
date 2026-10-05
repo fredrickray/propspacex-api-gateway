@@ -12,6 +12,9 @@ import {
   GetPropertiesByOwnerRequest,
   SearchByLocationRequest,
   UpdatePropertyStatusRequest,
+  ApprovePropertyRequest,
+  RejectPropertyRequest,
+  EscalatePropertyRequest,
   UpdateMediaRequest,
   UpdateBlockchainRequest,
   GetOwnerStatsRequest,
@@ -164,6 +167,24 @@ export class PropertyServiceClient {
     params: UpdatePropertyStatusRequest
   ): Promise<PropertyResponse> {
     return this.promisify<PropertyResponse>("UpdatePropertyStatus", params);
+  }
+
+  async approveProperty(
+    params: ApprovePropertyRequest
+  ): Promise<PropertyResponse> {
+    return this.promisify<PropertyResponse>("ApproveProperty", params);
+  }
+
+  async rejectProperty(
+    params: RejectPropertyRequest
+  ): Promise<PropertyResponse> {
+    return this.promisify<PropertyResponse>("RejectProperty", params);
+  }
+
+  async escalateProperty(
+    params: EscalatePropertyRequest
+  ): Promise<PropertyResponse> {
+    return this.promisify<PropertyResponse>("EscalateProperty", params);
   }
 
   async markAsSold(
