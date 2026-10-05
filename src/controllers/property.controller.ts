@@ -421,6 +421,7 @@ export default class PropertyController {
         amenities,
         media,
         purpose,
+        status,
       } = req.body;
 
       const response = await propertyService.updateProperty({
@@ -436,6 +437,7 @@ export default class PropertyController {
         amenities,
         media,
         purpose,
+        status,
       });
 
       logger.info({ propertyId: id }, "Property updated");
