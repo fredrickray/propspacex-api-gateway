@@ -10,17 +10,27 @@ export default class DealController {
         return res.status(401).json({ success: false, message: "Authentication required" });
       }
 
-      const { conversationId, propertyTitle } = req.body || {};
+      const { conversationId, propertyTitle, source } = req.body || {};
       if (!conversationId) {
         return res
           .status(400)
           .json({ success: false, message: "conversationId is required" });
       }
 
+      const allowedSources = ["website", "referral", "social", "portal"];
+      const normalizedSource = source ? String(source).trim().toLowerCase() : "website";
+      if (!allowedSources.includes(normalizedSource)) {
+        return res.status(400).json({
+          success: false,
+          message: "Source must be website, referral, social, or portal",
+        });
+      }
+
       const response = await userService.createOrGetDeal({
         conversationId: String(conversationId),
         userId,
         propertyTitle: propertyTitle ? String(propertyTitle) : "",
+        source: normalizedSource,
       });
 
       return res.status(200).json(response);

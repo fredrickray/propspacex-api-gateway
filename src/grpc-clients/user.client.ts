@@ -452,8 +452,19 @@ export class UserServiceClient {
     conversationId: string;
     userId: string;
     propertyTitle?: string;
+    source?: string;
   }): Promise<DealResponse> {
     return this.promisify<DealResponse>("CreateOrGetDeal", params);
+  }
+
+  async getAgentDealStats(agentId: string): Promise<{
+    leads: number;
+    leadsLastMonth: number;
+    months: Array<{ month: string; leads: number }>;
+    sources: Array<{ source: string; count: number }>;
+    propertyLeads: Array<{ propertyId: string; leads: number }>;
+  }> {
+    return this.promisify("GetAgentDealStats", { agentId });
   }
 
   async listDeals(params: {

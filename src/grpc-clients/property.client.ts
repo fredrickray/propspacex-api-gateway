@@ -137,6 +137,27 @@ export class PropertyServiceClient {
     return this.listProperties(params);
   }
 
+  async recordPropertyView(params: {
+    propertyId: string;
+    viewerId?: string;
+  }): Promise<{ success: boolean }> {
+    return this.promisify<{ success: boolean }>("RecordPropertyView", {
+      propertyId: params.propertyId,
+      viewerId: params.viewerId || "",
+    });
+  }
+
+  async getAgentViewStats(ownerId: string): Promise<{
+    views: number;
+    viewsLastMonth: number;
+    activeListings: number;
+    listingsCreatedThisMonth: number;
+    months: Array<{ month: string; views: number }>;
+    topProperties: Array<{ propertyId: string; title: string; views: number }>;
+  }> {
+    return this.promisify("GetAgentViewStats", { ownerId });
+  }
+
   async listPendingDocumentReviews(
     params: ListPendingDocumentReviewsRequest = {}
   ): Promise<ListPendingDocumentReviewsResponse> {

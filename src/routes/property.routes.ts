@@ -47,6 +47,17 @@ router.get(
  */
 router.get("/:id", propertyController.getProperty.bind(propertyController));
 
+/**
+ * @route   POST /api/v1/properties/:id/views
+ * @desc    Record one public listing view
+ * @access  Public (owner views are ignored)
+ */
+router.post(
+  "/:id/views",
+  optionalAuth,
+  propertyController.recordView.bind(propertyController)
+);
+
 // TODO: Uncomment when GetPropertyReviews RPC is added to property.proto
 // /**
 //  * @route   GET /api/properties/:id/reviews
