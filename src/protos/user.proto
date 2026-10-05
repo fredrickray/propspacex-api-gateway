@@ -42,6 +42,7 @@ service UserService {
   rpc GetDeal (GetDealRequest) returns (DealResponse);
   rpc QuoteDeal (QuoteDealRequest) returns (DealResponse);
   rpc AcceptDealQuote (AcceptDealQuoteRequest) returns (DealResponse);
+  rpc GetAgentDealStats (GetAgentDealStatsRequest) returns (GetAgentDealStatsResponse);
 }
 
 
@@ -411,12 +412,14 @@ message Deal {
   string updatedAt = 15;
   string quotedAt = 16;
   string acceptedAt = 17;
+  string source = 18;
 }
 
 message CreateOrGetDealRequest {
   string conversationId = 1;
   string userId = 2;
   string propertyTitle = 3;
+  string source = 4;
 }
 
 message ListDealsRequest {
@@ -478,4 +481,30 @@ message ListVerificationsResponse {
   int32 total = 2;
   int32 page = 3;
   int32 limit = 4;
+}
+message GetAgentDealStatsRequest {
+  string agentId = 1;
+}
+
+message DealMonthCount {
+  string month = 1;
+  int32 leads = 2;
+}
+
+message DealSourceCount {
+  string source = 1;
+  int32 count = 2;
+}
+
+message PropertyLeadCount {
+  string propertyId = 1;
+  int32 leads = 2;
+}
+
+message GetAgentDealStatsResponse {
+  int32 leads = 1;
+  int32 leadsLastMonth = 2;
+  repeated DealMonthCount months = 3;
+  repeated DealSourceCount sources = 4;
+  repeated PropertyLeadCount propertyLeads = 5;
 }

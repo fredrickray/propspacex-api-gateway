@@ -6,8 +6,10 @@ import {
 } from "@middlewares/auth.middleware";
 import { propertyUpload } from "@middlewares/upload.middleware";
 import PropertyController from "@controllers/property.controller";
+import AnalyticsController from "@controllers/analytics.controller";
 
 const agentRouter = Router();
+const analyticsController = new AnalyticsController();
 const agentPropertyRouter = Router()
 const propertyController = new PropertyController();
 
@@ -60,6 +62,16 @@ agentPropertyRouter.delete(
     propertyController.deleteProperty.bind(propertyController))
 
 
+
+/**
+ * @route   GET /api/v1/agents/analytics
+ * @desc    Listing views and deal counts for the signed-in agent
+ * @access  Private (agent)
+ */
+agentRouter.get(
+    "/analytics",
+    analyticsController.getAgentAnalytics.bind(analyticsController)
+);
 
 agentRouter.use("/properties", agentPropertyRouter)
 

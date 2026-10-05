@@ -113,6 +113,19 @@ export default class PropertyController {
     }
   }
 
+  async recordView(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      await propertyService.recordPropertyView({
+        propertyId: id,
+        viewerId: req.user?.userId,
+      });
+      res.status(204).send();
+    } catch (error) {
+      handleGrpcError(res, error, "Failed to record property view", "Property");
+    }
+  }
+
   //   async createProperty(req: Request, res: Response) {
   //     try {
   //       const ownerId = req.user!.userId;
