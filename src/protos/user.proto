@@ -17,18 +17,33 @@ service UserService {
   rpc ResendOTP (ResendOTPRequest) returns (ResendOTPResponse);
   rpc ForgotPassword (ForgotPasswordRequest) returns (ForgotPasswordResponse);
   rpc ResetPassword (ResetPasswordRequest) returns (ResetPasswordResponse);
+  rpc ListVerifications (ListVerificationsRequest) returns (ListVerificationsResponse);
+  rpc RefreshToken (RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc RequestWeb3Nonce (RequestWeb3NonceRequest) returns (RequestWeb3NonceResponse);
+  rpc VerifyWeb3Signature (VerifyWeb3SignatureRequest) returns (VerifyWeb3SignatureResponse);
+  rpc LinkWeb3Wallet (LinkWeb3WalletRequest) returns (LinkWeb3WalletResponse);
+  rpc UnlinkWeb3Wallet (UnlinkWeb3WalletRequest) returns (UnlinkWeb3WalletResponse);
+
 
   // Security & Device Management (called by API Gateway)
   rpc ValidateToken (ValidateTokenRequest) returns (ValidateTokenResponse);
   rpc RegisterDevice (RegisterDeviceRequest) returns (RegisterDeviceResponse);
   rpc LogActivity (LogActivityRequest) returns (LogActivityResponse);
   rpc CheckDeviceTrust (CheckDeviceTrustRequest) returns (CheckDeviceTrustResponse);
+
+  // Buyer-Agent Chat (called by API Gateway)
+  rpc CreateOrGetConversation (CreateOrGetConversationRequest) returns (CreateOrGetConversationResponse);
+  rpc SendChatMessage (SendChatMessageRequest) returns (SendChatMessageResponse);
+  rpc ListConversations (ListConversationsRequest) returns (ListConversationsResponse);
+  rpc ListConversationMessages (ListConversationMessagesRequest) returns (ListConversationMessagesResponse);
+  rpc MarkConversationRead (MarkConversationReadRequest) returns (MarkConversationReadResponse);
   rpc CreateOrGetDeal (CreateOrGetDealRequest) returns (DealResponse);
   rpc ListDeals (ListDealsRequest) returns (ListDealsResponse);
   rpc GetDeal (GetDealRequest) returns (DealResponse);
   rpc QuoteDeal (QuoteDealRequest) returns (DealResponse);
   rpc AcceptDealQuote (AcceptDealQuoteRequest) returns (DealResponse);
 }
+
 
 message CreateUserRequest {
   string firstName = 1;
@@ -56,6 +71,65 @@ message CreateUserResponse {
   string userId = 2;
 }
 
+message RefreshTokenRequest {
+  string refreshToken = 1;
+}
+message RefreshTokenResponse {
+  bool success = 1;
+  string accessToken = 2;
+  string refreshToken = 3;
+  string error = 4;
+}
+
+message RequestWeb3NonceRequest {
+  string walletAddress = 1;
+  string appRole = 2;
+}
+
+message RequestWeb3NonceResponse {
+  bool success = 1;
+  string nonce = 2;
+  string message = 3;
+  string error = 4;
+}
+
+message VerifyWeb3SignatureRequest {
+  string walletAddress = 1;
+  string signature = 2;
+  string message = 3;
+}
+
+message VerifyWeb3SignatureResponse {
+  bool success = 1;
+  GetUserResponse user = 2;
+  string error = 3;
+  string accessToken = 4;
+  string refreshToken = 5;
+}
+
+message LinkWeb3WalletRequest {
+  string userId = 1;
+  string walletAddress = 2;
+}
+
+message LinkWeb3WalletResponse {
+  bool success = 1;
+  string message = 2;
+  bool isPrimary = 3;
+  string error = 4;
+}
+
+message UnlinkWeb3WalletRequest {
+  string userId = 1;
+  string walletAddress = 2;
+}
+
+message UnlinkWeb3WalletResponse {
+  bool success = 1;
+  string message = 2;
+  string error = 3;
+}
+
 message GetUserRequest {
   string userId = 1;
 }
@@ -78,6 +152,7 @@ message GetUserResponse {
   int32 loginCooldown = 11;
   string createdAt = 12;
   string updatedAt = 13;
+  string appRole = 14;
 }
 
 message ListUsersRequest {
@@ -228,6 +303,96 @@ message CheckDeviceTrustResponse {
   bool isTrusted = 1;
 }
 
+// Chat messages
+message CreateOrGetConversationRequest {
+  string buyerId = 1;
+  string agentId = 2;
+  string propertyId = 3;
+}
+
+message ConversationResponse {
+  string conversationId = 1;
+  string buyerId = 2;
+  string agentId = 3;
+  string propertyId = 4;
+  string status = 5;
+  string createdAt = 6;
+  string updatedAt = 7;
+  string lastMessageAt = 8;
+}
+
+message CreateOrGetConversationResponse {
+  bool success = 1;
+  ConversationResponse conversation = 2;
+  string error = 3;
+}
+
+message SendChatMessageRequest {
+  string conversationId = 1;
+  string senderId = 2;
+  string body = 3;
+}
+
+message ChatMessageResponse {
+  string messageId = 1;
+  string conversationId = 2;
+  string senderId = 3;
+  string recipientId = 4;
+  string body = 5;
+  string messageType = 6;
+  string createdAt = 7;
+  string readAt = 8;
+}
+
+message SendChatMessageResponse {
+  bool success = 1;
+  ChatMessageResponse message = 2;
+  string error = 3;
+}
+
+message ListConversationsRequest {
+  string userId = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message ConversationSummaryResponse {
+  ConversationResponse conversation = 1;
+  ChatMessageResponse lastMessage = 2;
+  int32 unreadCount = 3;
+}
+
+message ListConversationsResponse {
+  repeated ConversationSummaryResponse conversations = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message ListConversationMessagesRequest {
+  string conversationId = 1;
+  string userId = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message ListConversationMessagesResponse {
+  repeated ChatMessageResponse messages = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message MarkConversationReadRequest {
+  string conversationId = 1;
+  string userId = 2;
+}
+
+message MarkConversationReadResponse {
+  bool success = 1;
+  int32 updatedCount = 2;
+}
+
 message Deal {
   string dealId = 1;
   string conversationId = 2;
@@ -287,6 +452,29 @@ message DealResponse {
 
 message ListDealsResponse {
   repeated Deal deals = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+}
+
+message ListVerificationsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message VerificationItem {
+  string id = 1;
+  string kind = 2;
+  string status = 3;
+  string title = 4;
+  string detail = 5;
+  string userId = 6;
+  string email = 7;
+  string createdAt = 8;
+}
+
+message ListVerificationsResponse {
+  repeated VerificationItem verifications = 1;
   int32 total = 2;
   int32 page = 3;
   int32 limit = 4;

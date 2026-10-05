@@ -30,6 +30,8 @@ import {
   VerifyPropertyDocumentRequest,
   PropertyDocumentResponse,
   DocumentVerificationStatusResponse,
+  ListPendingDocumentReviewsRequest,
+  ListPendingDocumentReviewsResponse,
 } from "@type/property.types";
 
 const protoLoaderOptions: protoLoader.Options = {
@@ -133,6 +135,18 @@ export class PropertyServiceClient {
     params: ListPropertiesRequest = {}
   ): Promise<PropertiesResponse> {
     return this.listProperties(params);
+  }
+
+  async listPendingDocumentReviews(
+    params: ListPendingDocumentReviewsRequest = {}
+  ): Promise<ListPendingDocumentReviewsResponse> {
+    return this.promisify<ListPendingDocumentReviewsResponse>(
+      "ListPendingDocumentReviews",
+      {
+        page: params.page || 1,
+        limit: params.limit || 20,
+      }
+    );
   }
 
   async getPropertiesByOwner(

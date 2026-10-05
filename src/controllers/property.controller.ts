@@ -24,6 +24,7 @@ export default class PropertyController {
         isActive,
         search,
         flagged,
+        purpose,
       } = req.query;
 
       const requestParams = {
@@ -42,6 +43,7 @@ export default class PropertyController {
         isActive: isActive !== undefined ? isActive === "true" : undefined,
         filterByActive: isActive !== undefined ? true : undefined,
         search: search as string,
+        purpose: purpose as string,
         callerRole: req.user?.appRole,
         ...(flagged !== undefined
           ? {
@@ -198,6 +200,7 @@ export default class PropertyController {
           features: parseJsonField(req.body.features),
           size: parseJsonField(req.body.size),
           amenities: parseJsonField(req.body.amenities),
+          purpose: req.body.purpose,
         };
       }
       console.log("Property data:", propertyData);
@@ -325,6 +328,7 @@ export default class PropertyController {
         size: propertyData.size,
         amenities: propertyData.amenities,
         ownerId: userId,
+        purpose: propertyData.purpose,
         media: {
           images: uploadedImages,
           videos: uploadedVideos,
@@ -403,10 +407,12 @@ export default class PropertyController {
         features,
         amenities,
         media,
+        purpose,
       } = req.body;
 
       const response = await propertyService.updateProperty({
         propertyId: id,
+        userId: req.user?.userId,
         title,
         description,
         type,
@@ -416,6 +422,7 @@ export default class PropertyController {
         features,
         amenities,
         media,
+        purpose,
       });
 
       logger.info({ propertyId: id }, "Property updated");
@@ -459,6 +466,7 @@ export default class PropertyController {
         bathrooms,
         isActive,
         search,
+        purpose,
       } = req.query;
 
       const requestParams = {
@@ -474,6 +482,7 @@ export default class PropertyController {
         bedrooms: bedrooms ? Number(bedrooms) : undefined,
         bathrooms: bathrooms ? Number(bathrooms) : undefined,
         ownerId: ownerId, // Hardcode ownerId to the authenticated user and ignore query payload ownerId.
+        purpose: purpose as string,
         isActive: isActive !== undefined ? isActive === "true" : undefined,
         filterByActive: isActive !== undefined ? true : undefined,
         search: search as string,
