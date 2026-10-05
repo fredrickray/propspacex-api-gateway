@@ -6,6 +6,8 @@ import {
   SignupResponse,
   VerifyOTPResponse,
   ResendOTPResponse,
+  ForgotPasswordResponse,
+  ResetPasswordResponse,
   UserResponse,
   ListUsersResponse,
   RefreshTokenResponse,
@@ -175,6 +177,59 @@ export default class UserController {
     } catch (error: any) {
       logger.error({ error }, "Resend OTP error");
       handleGrpcError(res, error, "Resend OTP failed", "User");
+    }
+  }
+
+  async forgotPassword(req: Request, res: Response) {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          message: "Email is required",
+        });
+      }
+
+      const response = (await userService.forgotPassword({
+        email,
+      })) as ForgotPasswordResponse;
+
+      res.status(200).json({
+        success: true,
+        message:
+          response.message ||
+          "If that email address is in our database, we will send you an email to reset your password.",
+      });
+    } catch (error: any) {
+      logger.error({ error }, "Forgot password error");
+      handleGrpcError(res, error, "Failed to send reset email", "User");
+    }
+  }
+
+  async resetPassword(req: Request, res: Response) {
+    try {
+      const { token, password } = req.body;
+
+      if (!token || !password) {
+        return res.status(400).json({
+          success: false,
+          message: "Token and password are required",
+        });
+      }
+
+      const response = (await userService.resetPassword({
+        token,
+        password,
+      })) as ResetPasswordResponse;
+
+      res.status(200).json({
+        success: true,
+        message: response.message || "Password reset successfully",
+      });
+    } catch (error: any) {
+      logger.error({ error }, "Reset password error");
+      handleGrpcError(res, error, "Failed to reset password", "User");
     }
   }
 

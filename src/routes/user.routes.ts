@@ -34,6 +34,26 @@ router.post("/verify-otp", userController.verifyOTP.bind(userController));
 router.post("/resend-otp", userController.resendOTP.bind(userController));
 
 /**
+ * @route   POST /auth/forgot-password
+ * @desc    Send a password reset email
+ * @access  Public
+ */
+router.post(
+  "/forgot-password",
+  userController.forgotPassword.bind(userController)
+);
+
+/**
+ * @route   POST /auth/reset-password
+ * @desc    Set a new password with a reset token
+ * @access  Public
+ */
+router.post(
+  "/reset-password",
+  userController.resetPassword.bind(userController)
+);
+
+/**
  * @route   POST /auth/refresh-token
  * @desc    Refresh access token
  * @access  Public
