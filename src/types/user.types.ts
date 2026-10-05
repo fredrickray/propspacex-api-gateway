@@ -51,6 +51,18 @@ interface ResendOTPResponse {
   error: string;
 }
 
+interface ForgotPasswordResponse {
+  success: boolean;
+  message: string;
+  error: string;
+}
+
+interface ResetPasswordResponse {
+  success: boolean;
+  message: string;
+  error: string;
+}
+
 interface RefreshTokenResponse {
   success: boolean;
   accessToken: string;
@@ -88,6 +100,8 @@ export {
   SignInResponse,
   VerifyOTPResponse,
   ResendOTPResponse,
+  ForgotPasswordResponse,
+  ResetPasswordResponse,
   RefreshTokenResponse,
   RequestWeb3NonceResponse,
   VerifyWeb3SignatureResponse,

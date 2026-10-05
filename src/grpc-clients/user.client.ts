@@ -61,6 +61,27 @@ export interface ResendOTPResponse {
   error: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  success: boolean;
+  message: string;
+  error: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  password: string;
+}
+
+export interface ResetPasswordResponse {
+  success: boolean;
+  message: string;
+  error: string;
+}
+
 export interface RequestWeb3NonceRequest {
   walletAddress: string;
   appRole?: string;
@@ -322,6 +343,18 @@ export class UserServiceClient {
 
   async resendOTP(params: ResendOTPRequest): Promise<ResendOTPResponse> {
     return this.promisify<ResendOTPResponse>("ResendOTP", params);
+  }
+
+  async forgotPassword(
+    params: ForgotPasswordRequest
+  ): Promise<ForgotPasswordResponse> {
+    return this.promisify<ForgotPasswordResponse>("ForgotPassword", params);
+  }
+
+  async resetPassword(
+    params: ResetPasswordRequest
+  ): Promise<ResetPasswordResponse> {
+    return this.promisify<ResetPasswordResponse>("ResetPassword", params);
   }
 
   async requestWeb3Nonce(params: RequestWeb3NonceRequest): Promise<RequestWeb3NonceResponse> {
